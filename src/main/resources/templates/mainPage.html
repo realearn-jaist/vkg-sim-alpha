@@ -1,0 +1,196 @@
+<!--<!doctype html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="utf-8">-->
+<!--    <meta content="width=device-width, initial-scale=1" name="viewport">-->
+<!--    <title>VKGSim</title>-->
+<!--    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">-->
+<!--    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"-->
+<!--          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" rel="stylesheet">-->
+<!--    <link href="/css/style.css" rel="stylesheet">-->
+<!--</head>-->
+<!--<body class="background-image">-->
+<!--<div class="slider-container" id="slider-container">-->
+<!--    <label class="slider-label" for="similarityThreshold">Similarity Threshold:</label>-->
+<!--    <output class="slider-value" id="sliderValue">0.5</output>-->
+<!--    <input class="slider" id="similarityThreshold" max="1.0" min="0.0" name="similarityThreshold" oninput="updateSliderValue(this.value)" step="0.01"-->
+<!--           type="range" value="0.5">-->
+<!--</div>-->
+
+<!--<div class="checkbox-container">-->
+<!--    <label class="checkbox-label" for="standardQuery">-->
+<!--        <input checked id="standardQuery" name="queryType" type="checkbox" value="standard">-->
+<!--        Standard Query-->
+<!--    </label>-->
+<!--    <br>-->
+<!--    <label class="checkbox-label" for="similarityQuery">-->
+<!--        <input id="similarityQuery" name="queryType" onclick="SimilarityMode()" type="checkbox" value="similarity">-->
+<!--        Similarity Query (Advanced Feature)-->
+<!--    </label>-->
+<!--</div>-->
+
+<!--<div class="container-fluid">-->
+<!--    <div class="row">-->
+<!--        &lt;!&ndash; Left Column &ndash;&gt;-->
+<!--        <div class="col-md-6">-->
+
+<!--            &lt;!&ndash; Create User Folder &ndash;&gt;-->
+<!--            <div class="mb-3 input-group py-5 px-5">-->
+<!--                <input class="form-control" id="userFolder" name="userFolder" placeholder="Enter username" type="text">-->
+<!--                <button class="btn btn-primary" onclick="createUserFolder()" type="button">Submit</button>-->
+<!--            </div>-->
+
+<!--            <div class="container mt-5 py-3">-->
+<!--                <a href="/">-->
+<!--                    <h1 class="text-center py-3 px-3" style="color: black;">VKGSim</h1>-->
+<!--                </a>-->
+<!--                <div class="row justify-content-center background-with-opacity">-->
+<!--                    <form enctype="multipart/form-data" id="uploadForm">-->
+<!--                        <div class="mb-5 py-3 px-5">-->
+<!--                            <h3 style="color: black;">Upload <span style="font-weight: bold;">.owl</span> File:</h3>-->
+<!--                            <input accept=".owl, .krss, .ttl" class="form-control" id="owlFile" name="owlFile"-->
+<!--                                   required type="file">-->
+<!--                        </div>-->
+<!--                        <div class="mb-5 py-3 px-5">-->
+<!--                            <h3 style="color: black;">Upload Properties File:</h3>-->
+<!--                            <input accept=".properties" class="form-control" id="propertiesFile" name="propertiesFile"-->
+<!--                                   required type="file">-->
+<!--                        </div>-->
+<!--                        <div class="mb-5 py-3 px-5">-->
+<!--                            <h3 style="color: black;">Upload Driver File:</h3>-->
+<!--                            <input accept=".jar" class="form-control" id="driverFile" name="driverFile" required-->
+<!--                                   type="file">-->
+<!--                        </div>-->
+<!--                        <div class="mb-5 py-3 px-5">-->
+<!--                            <button class="btn btn-primary" onclick="uploadFile()" type="button">Upload Files</button>-->
+<!--                        </div>-->
+<!--                    </form>-->
+
+<!--                    &lt;!&ndash; Display list of concept names from an uploaded file &ndash;&gt;-->
+<!--                    <div class="col-md-6">-->
+<!--                        <div class="mb-3 py-5 px-5" id="allConceptName">-->
+<!--                            <ul class="list-group" id="allConceptNameList"></ul>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; Right Column &ndash;&gt;-->
+<!--        <div class="col-md-6">-->
+<!--            &lt;!&ndash; Right Top Column &ndash;&gt;-->
+<!--            <div class="mb-3 input-group py-5 px-5">-->
+<!--                <input class="form-control" id="baseIRI" name="baseIRI"-->
+<!--                       placeholder="Enter base IRI in format : http://example/com"-->
+<!--                       type="text">-->
+<!--                <button class="btn btn-primary" onclick="generateMapping()" type="button">Generate Mapping</button>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; Mapping editor &ndash;&gt;-->
+<!--            <div class="col-md-9">-->
+<!--                <div class="form-floating mb-3">-->
+<!--                    <textarea class="form-control" disabled id="mappingEditor" name="mappingEditor"-->
+<!--                              style="height: 500px"></textarea>-->
+<!--                    <label for="mappingEditor">Mapping Editor</label>-->
+<!--                </div>-->
+<!--                <button class="btn btn-primary pt-3 pb-3 form-control" onclick="editMapping()" type="button">Edit-->
+<!--                    Mapping-->
+<!--                </button>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; SPARQL query input &ndash;&gt;-->
+<!--            <div class="mb-3 input-group py-5 px-5">-->
+<!--                <input class="form-control" id="sparqlQuery" name="sparqlQuery" placeholder="Enter SPARQL Query"-->
+<!--                       type="text">-->
+<!--                <button class="btn btn-primary" onclick="sendQuery()" type="button">Send Query</button>-->
+<!--            </div>-->
+
+<!--            &lt;!&ndash; SPARQL query result &ndash;&gt;-->
+<!--            <div class="mb-3 py-5 px-5" id="sparqlResult">-->
+<!--                <textarea class="form-control" disabled id="sparql-Result" name="sparqlResult"-->
+<!--                          style="height: 300px"></textarea>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<script crossorigin="anonymous"-->
+<!--        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"-->
+<!--        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>-->
+<!--&lt;!&ndash; JavaScript for functionality &ndash;&gt;-->
+<!--<script src="/css/script.js"></script>-->
+<!--</body>-->
+<!--</html>-->
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>VKGSim</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body class="background-image" id="mainPage">
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar">
+            <h2>VKGSim</h2>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="mainPage">User Login</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="mappingPage">Mapping Section</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="queryPage">Query Section</a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4">
+            <div id="userLoginSection" class="mb-3 input-group py-5 px-5">
+                <input class="form-control" id="userFolder" name="userFolder" placeholder="Enter username" type="text">
+                <button class="btn btn-primary" onclick="createUserFolder()" type="button">Submit</button>
+            </div>
+
+            <div id="uploadSection" class="container mt-5 py-3 ">
+                <h3 class="text-center py-3 px-3" style="color: black;">Upload Section</h3>
+                <form enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-5 py-3 px-5">
+                        <h3 style="color: black;">Upload <span style="font-weight: bold;">.owl</span> File:</h3>
+                        <input accept=".owl, .krss, .ttl" class="form-control" id="owlFile" name="owlFile" required type="file">
+                    </div>
+                    <div class="mb-5 py-3 px-5">
+                        <h3 style="color: black;">Upload Properties File:</h3>
+                        <input accept=".properties" class="form-control" id="propertiesFile" name="propertiesFile" required type="file">
+                    </div>
+                    <div class="mb-5 py-3 px-5">
+                        <h3 style="color: black;">Upload Driver File:</h3>
+                        <input accept=".jar" class="form-control" id="driverFile" name="driverFile" required type="file">
+                    </div>
+                    <div class="mb-5 py-3 px-5">
+                        <button class="btn btn-primary" onclick="uploadFile()" type="button">Upload Files</button>
+                    </div>
+                </form>
+                <div class="col-md-6">
+                    <div class="mb-3 py-5 px-5" id="allConceptName">
+                        <ul class="list-group" id="allConceptNameList"></ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<script crossorigin="anonymous"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- JavaScript for functionality -->
+<script src="/css/script.js"></script>
+</body>
+</html>

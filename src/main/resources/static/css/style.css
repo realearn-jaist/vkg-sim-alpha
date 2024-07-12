@@ -1,0 +1,217 @@
+body {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+}
+
+.background-image {
+    background-image: url('https://musedesignawards.com/upload/entry/files/ME210178/small/39921657782437.jpg');
+    background-size: cover;
+    background-repeat: repeat;
+    height: 100vh;
+}
+
+. { pointer-events: none; opacity: 0.5; }
+
+.sidebar {
+    height: 100vh;
+    padding: 1rem;
+    background-color: coral;
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 16.66667%; /* 2/12 columns for md breakpoint */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.sidebar h2 {
+    margin-bottom: 2rem;
+    font-size: 2rem;
+}
+
+.sidebar ul {
+    width: 100%;
+    padding: 0;
+    list-style: none;
+}
+
+.sidebar .nav-item {
+    margin: 1rem 0;
+}
+
+.sidebar .nav-link {
+    color: white;
+    text-decoration: none;
+    font-size: 1.2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.sidebar .nav-link.active {
+    font-weight: bold;
+}
+
+
+
+.container {
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px; /* Adjust padding for content inside container */
+    margin-bottom: 20px; /* Add margin between containers */
+}
+
+.background-with-opacity {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 20px; /* Adjust padding */
+    margin-bottom: 20px; /* Add margin */
+}
+
+h1, h3 {
+    font-weight: 700;
+}
+
+.form-control, .btn {
+    border-radius: 30px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+textarea.form-control {
+    border-radius: 15px;
+}
+
+.input-group {
+    border-radius: 30px;
+    overflow: hidden;
+}
+
+#sparqlResult, #allConceptName {
+    margin: 20px 0; /* Adjust margin */
+    padding: 20px; /* Adjust padding */
+    background-color: #ffffff;
+    border-radius: 15px;
+}
+
+#uploadForm {
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    padding: 20px; /* Adjust padding */
+    margin-bottom: 20px; /* Add margin */
+}
+
+#mappingEditor {
+    border: 1px solid; /* Add border */
+    border-radius: 15px;
+    box-shadow: 0 0 10px;
+    background-color: #ffffff;
+    padding: 20px; /* Adjust padding */
+    margin-bottom: 20px; /* Add margin */
+}
+
+::placeholder {
+    color: #bfbfbf;
+    opacity: 1;
+}
+
+textarea::placeholder {
+    text-align: center;
+}
+
+#allConceptNameList .list-group-item {
+    border: none;
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+}
+
+#allConceptNameList {
+    border-radius: 15px;
+    padding: 15px;
+}
+
+.disabled-form {
+    opacity: 0.5; /* Adjust opacity for disabled look */
+    pointer-events: none; /* Disable pointer events */
+}
+
+.slider-container {
+    width: 80%;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.slider-label {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.slider-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #007bff; /* Adjust color as needed */
+}
+
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 15px;
+    border-radius: 10px;
+    background: black;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .15s ease-in-out;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #007bff; /* Adjust thumb color */
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #007bff; /* Adjust thumb color */
+    cursor: pointer;
+}
+
+.checkbox-container {
+    width: 80%;
+    margin: 20px auto;
+    text-align: left;
+}
+
+.checkbox-label {
+    font-size: 18px;
+}
+
+.slider-container {
+    display: none;
+    margin-top: 10px;
+}
