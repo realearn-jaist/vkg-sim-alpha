@@ -215,3 +215,37 @@ textarea::placeholder {
     display: none;
     margin-top: 10px;
 }
+
+.popup {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    text-align: center;
+}
+
+.popup .popuptext {
+    visibility: hidden; /* Initially hidden */
+    width: 500px;
+    background-color: darksalmon;
+    color: black;
+    text-align: left;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    top: 20%; /* Adjust top position as needed */
+    left: calc(100% + 500px); /* Position to the left of the info button */
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+.popup.show .popuptext {
+    visibility: visible; /* Visible when .show class is applied */
+    opacity: 1;
+}
+
+.popuptext .code-snippet {
+    color: darkblue;
+}

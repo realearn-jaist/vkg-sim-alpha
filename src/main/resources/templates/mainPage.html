@@ -154,26 +154,56 @@
 
         <!-- Main content -->
         <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4">
-            <div id="userLoginSection" class="mb-3 input-group py-5 px-5">
+            <div class="mb-3 input-group py-5 px-5" id="userLoginSection">
                 <input class="form-control" id="userFolder" name="userFolder" placeholder="Enter username" type="text">
                 <button class="btn btn-primary" onclick="createUserFolder()" type="button">Submit</button>
             </div>
 
-            <div id="uploadSection" class="container mt-5 py-3 ">
+            <div class="container mt-5 py-3 " id="uploadSection">
                 <h3 class="text-center py-3 px-3" style="color: black;">Upload Section</h3>
                 <form enctype="multipart/form-data" id="uploadForm">
                     <div class="mb-5 py-3 px-5">
                         <h3 style="color: black;">Upload <span style="font-weight: bold;">.owl</span> File:</h3>
-                        <input accept=".owl, .krss, .ttl" class="form-control" id="owlFile" name="owlFile" required type="file">
+                        <input accept=".owl, .krss, .ttl" class="form-control" id="owlFile" name="owlFile" required
+                               type="file">
                     </div>
+
                     <div class="mb-5 py-3 px-5">
-                        <h3 style="color: black;">Upload Properties File:</h3>
+                        <h3 style="color: black;">Upload Mapping File <span style="font-weight: bold;">.obda</span> File:</h3>
+                        <input accept=".obda" class="form-control" id="mappingFile" name="mappingFile" required
+                               type="file">
+                    </div>
+
+                    <div class="mb-5 py-3 px-5">
+                        <div style="display: flex; align-items: center;">
+                            <h3 style="color: black; margin-right: 10px;">Upload Database Properties File:</h3>
+                            <button class="btn btn-sm btn-info" onclick="showInfo()" type="button">ℹ️</button>
+                        </div>
                         <input accept=".properties" class="form-control" id="propertiesFile" name="propertiesFile" required type="file">
                     </div>
-                    <div class="mb-5 py-3 px-5">
-                        <h3 style="color: black;">Upload Driver File:</h3>
-                        <input accept=".jar" class="form-control" id="driverFile" name="driverFile" required type="file">
+                    <div class="popup" id="infoPopup">
+    <span class="popuptext" id="popupText">
+    <p><strong>Instructions:</strong></p>
+    <ol>
+        <li>Create a file <strong>.properties</strong>.</li>
+        <li>Use the following syntax:</li>
+        <ul style="list-style-type: none; padding-left: 0;">
+            <li><code class="code-snippet">jdbc.url=jdbc:h2:tcp://localhost/../university-session1</code> <!-- your session --></li>
+            <li><code class="code-snippet">jdbc.driver=org.h2.Driver</code> <!-- example --></li>
+            <li><code class="code-snippet">jdbc.user=</code></li>
+            <li><code class="code-snippet">jdbc.password=</code></li>
+        </ul>
+        <li>Upload the file</li>
+    </ol>
+</span>
                     </div>
+
+                    <div class="mb-5 py-3 px-5">
+                        <h3 style="color: black;">Upload Database Driver File:</h3>
+                        <input accept=".jar" class="form-control" id="driverFile" name="driverFile" required
+                               type="file">
+                    </div>
+
                     <div class="mb-5 py-3 px-5">
                         <button class="btn btn-primary" onclick="uploadFile()" type="button">Upload Files</button>
                     </div>

@@ -24,11 +24,61 @@ public class OntopController {
 
     private String username; // Username of the user
 
-    private final String mappingFileName = "mapping.obda"; // Name of the mapping file
+    private String mappingFileName; // Name of the mapping file
     private String owlFileName; // Name of the OWL file
     private String propertiesFileName; // Name of the properties file
     private String driverFileName; // Name of the driver file
 
+    ///////////////////////////
+    ////Setters and Getters////
+    ///////////////////////////
+    public String getOwlFileName() {
+        return owlFileName;
+    }
+
+    public void setOwlFileName(String owlFileName) {
+        this.owlFileName = owlFileName;
+    }
+
+    public void setMappingFileName(String mappingFileName) { this.mappingFileName = mappingFileName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPropertiesFileName() {
+        return propertiesFileName;
+    }
+
+    public void setPropertiesFileName(String propertiesFileName) {
+        this.propertiesFileName = propertiesFileName;
+    }
+
+    public String getDriverFileName() {
+        return driverFileName;
+    }
+
+    public void setDriverFileName(String driverFileName) {
+        this.driverFileName = driverFileName;
+    }
+
+    public String getBaseUploadDir() {
+        return BASE_UPLOAD_DIR;
+    }
+
+    public String getMappingFileName() {
+        return mappingFileName;
+    }
+
+
+    ///////////////////////////
+    ///////Ontop Methods//////
+    ///////////////////////////
     public OWLOntology prepareOWLFile(File owlFile) {
         /*
           Prepare the OWL file for processing
@@ -44,6 +94,23 @@ public class OntopController {
             e.printStackTrace();
         }
         return ontology;
+    }
+
+    public String saveMapping(String mapping) {
+        /*
+          Edit the mapping file
+          @param mapping: Mapping content
+         */
+        try {
+            String TMP_MappingFileName = "ontop-cli/" + getBaseUploadDir() + getUsername() + "/" + mappingFileName;
+            File file = new File(TMP_MappingFileName);
+            FileWriter writer = new FileWriter(file);
+            writer.write(mapping);
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return mapping;
     }
 
     public File saveUploadedFile(MultipartFile file, String filename) throws IOException {
@@ -104,7 +171,7 @@ public class OntopController {
         return conceptNames;
     }
 
-    private String readMappingFileContent() {
+    String readMappingFileContent() {
         /*
           Read the content of the mapping file
          * @return contentBuilder.toString(): Content of the mapping file
@@ -142,46 +209,6 @@ public class OntopController {
         return userFolder.toString();
     }
 
-    public String getOwlFileName() {
-        return owlFileName;
-    }
-
-    public void setOwlFileName(String owlFileName) {
-        this.owlFileName = owlFileName;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPropertiesFileName() {
-        return propertiesFileName;
-    }
-
-    public void setPropertiesFileName(String propertiesFileName) {
-        this.propertiesFileName = propertiesFileName;
-    }
-
-    public String getDriverFileName() {
-        return driverFileName;
-    }
-
-    public void setDriverFileName(String driverFileName) {
-        this.driverFileName = driverFileName;
-    }
-
-    public String getBaseUploadDir() {
-        return BASE_UPLOAD_DIR;
-    }
-
-    public String getMappingFileName() {
-        return mappingFileName;
-    }
-
     public String executeCommand(String command) {
         /*
           Execute a command in the command prompt
@@ -210,10 +237,11 @@ public class OntopController {
                 output.append("Output: ").append(line).append("\n");
             }
 
-//            // Read errors
-//            while ((line = errorReader.readLine()) != null) {
-//                output.append("Error: ").append(line).append("\n");
-//            }
+            //Read errors
+            while ((line = errorReader.readLine()) != null) {
+                output.append("Error: ").append(line).append("\n");
+            }
+            System.out.println("Output: " + output);
 
 //            // Wait for the process to finish
 //            int exitCode = process.waitFor();
@@ -267,7 +295,11 @@ public class OntopController {
     }
 
     public String ontopBootstrap(String baseIRI) {
-
+        /*
+          Bootstrap Ontop
+          @param baseIRI: Base IRI
+         * @return readMappingFileContent(): Content of the mapping file
+         */
         String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
         String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName + "_tmp";
         String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;

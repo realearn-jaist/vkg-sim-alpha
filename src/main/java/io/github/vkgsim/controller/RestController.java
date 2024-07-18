@@ -17,6 +17,9 @@ public class RestController {
     @Autowired
     private OntopController ontopController;
 
+    @Autowired
+    private SimilarityController similarityController;
+
     // This method is used to create a folder for the user
     @GetMapping("/createUserFolder")
     public String createUserFolder(@RequestParam String username) {
@@ -28,14 +31,17 @@ public class RestController {
     @PostMapping("/uploadFile")
     public String uploadFile(
             @RequestParam("owlFile") MultipartFile owlFile,
+            @RequestParam("mappingFile") MultipartFile mappingFile,
             @RequestParam("propertiesFile") MultipartFile propertiesFile,
             @RequestParam("driverFile") MultipartFile driverFile
     ) {
         ontopController.setOwlFileName(owlFile.getOriginalFilename());
+        ontopController.setMappingFileName(mappingFile.getOriginalFilename());
         ontopController.setPropertiesFileName(propertiesFile.getOriginalFilename());
         ontopController.setDriverFileName(driverFile.getOriginalFilename());
         try {
             File owl = ontopController.saveUploadedFile(owlFile, owlFile.getOriginalFilename());
+            File mapping = ontopController.saveUploadedFile(mappingFile, mappingFile.getOriginalFilename());
             File properties = ontopController.saveUploadedFile(propertiesFile, propertiesFile.getOriginalFilename());
             File driver = ontopController.saveUploadedFile(driverFile, driverFile.getOriginalFilename());
 
@@ -68,4 +74,25 @@ public class RestController {
         return ontopController.ontopBootstrap(baseIRI);
     }
 
+    // This method is used to save the mapping file
+    @PostMapping("/saveMapping")
+    public String saveMapping(
+            @RequestBody Map<String, String> request
+    ) {
+        String mapping = request.get("mapping");
+        return ontopController.saveMapping(mapping);
+    }
+
+    // This method is used to read the mapping file content
+    @GetMapping("/readMappingFileContent")
+    public String readMappingFileContent() {
+        return ontopController.readMappingFileContent();
+    }
+
+    // This method is used to measure the similarity in all concept pairs
+    @PostMapping("/similarityMeasureAllConcept")
+    public String similarityMeasureAllConcept(@RequestBody Map<String, String> request) {
+        String threshold = request.get("threshold");
+        return similarityController.fetchAllThresholdConceptPair(threshold);
+    }
 }
