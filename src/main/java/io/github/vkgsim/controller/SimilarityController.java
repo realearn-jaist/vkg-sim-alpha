@@ -37,7 +37,7 @@ public class SimilarityController {
             for (int j = i + 1; j < conceptNamesKRSS.size(); j++) {
                 String concept1 = conceptNamesKRSS.get(i);
                 String concept2 = conceptNamesKRSS.get(j);
-                String result_krss = simExplainerKRSS.simMeasurementResult(TypeConstant.DYNAMIC_SIMPI, concept1, concept2);
+                String result_krss = simExplainerKRSS.similarity(TypeConstant.DYNAMIC_SIMPI, concept1, concept2).toString();
                 System.out.println("Similarity between " + concept1 + " and " + concept2 + ": " + result_krss);
                 boolean b = Float.parseFloat(result_krss) > Float.parseFloat(threshold);
                 if (b) {
