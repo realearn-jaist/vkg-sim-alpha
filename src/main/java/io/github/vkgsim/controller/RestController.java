@@ -65,7 +65,8 @@ public class RestController {
             @RequestBody Map<String, String> request
     ) {
         String sparqlQuery = request.get("query");
-        return ontopController.ontopQuery(String.valueOf(sparqlQuery));
+        String owlFileType = request.get("owlFileType");
+        return ontopController.ontopQuery(String.valueOf(sparqlQuery) , owlFileType);
     }
 
     // This method is used to generate the mapping file
@@ -94,5 +95,10 @@ public class RestController {
     public String similarityMeasureAllConcept(@RequestBody Map<String, String> request) {
         String threshold = request.get("threshold");
         return similarityController.fetchAllThresholdConceptPair(threshold);
+    }
+
+    @GetMapping("/getOWLFilename")
+    public List<String> getOWLFilename() {
+        return ontopController.getOWLFileNameWithBoostrap();
     }
 }

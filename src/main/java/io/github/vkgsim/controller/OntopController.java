@@ -23,7 +23,6 @@ public class OntopController {
     private final Set<String> processedProperties = new HashSet<>(); // Set to store processed properties
 
     private String username; // Username of the user
-
     private String mappingFileName; // Name of the mapping file
     private String owlFileName; // Name of the OWL file
     private String propertiesFileName; // Name of the properties file
@@ -40,7 +39,27 @@ public class OntopController {
         this.owlFileName = owlFileName;
     }
 
-    public void setMappingFileName(String mappingFileName) { this.mappingFileName = mappingFileName;
+    public ArrayList<String> getOWLFileNameWithBoostrap() {
+        //String baseOWLFilename = buildFilePath("");
+        ArrayList<String> fileNames = new ArrayList<>();
+        addFileNameIfExists(fileNames, this.owlFileName);
+        addFileNameIfExists(fileNames, getBootstrapFileName());
+        return fileNames;
+    }
+
+    private String getBootstrapFileName() {
+        return this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl";
+    }
+
+    private void addFileNameIfExists(List<String> fileNames, String fileName) {
+        Path filePath = Paths.get(buildFilePath(fileName));
+        if (Files.exists(filePath)) {
+            fileNames.add(filePath.getFileName().toString());
+        }
+    }
+
+    public String buildFilePath(String fileName) {
+        return "ontop-cli/" + BASE_UPLOAD_DIR + getUsername() + "/" + fileName;
     }
 
     public String getUsername() {
@@ -75,6 +94,9 @@ public class OntopController {
         return mappingFileName;
     }
 
+    public void setMappingFileName(String mappingFileName) {
+        this.mappingFileName = mappingFileName;
+    }
 
     ///////////////////////////
     ///////Ontop Methods//////
@@ -97,37 +119,21 @@ public class OntopController {
     }
 
     public String saveMapping(String mapping) {
-        /*
-          Edit the mapping file
-          @param mapping: Mapping content
-         */
-        try {
-            String TMP_MappingFileName = "ontop-cli/" + getBaseUploadDir() + getUsername() + "/" + mappingFileName;
-            File file = new File(TMP_MappingFileName);
-            FileWriter writer = new FileWriter(file);
+        String TMP_MappingFileName = buildFilePath(mappingFileName);
+        try (FileWriter writer = new FileWriter(TMP_MappingFileName)) {
             writer.write(mapping);
-            writer.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Failed to save mapping: " + e.getMessage());
         }
         return mapping;
     }
 
     public File saveUploadedFile(MultipartFile file, String filename) throws IOException {
-        /*
-          Save the uploaded file to the server
-          @param file: MultipartFile object
-          @param filename: Name of the file
-         * @return savedFile: File object
-         */
-        String USER_DIR = "ontop-cli/" + BASE_UPLOAD_DIR + username + "/";
-        File uploadDir = new File(USER_DIR);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-        System.out.println("File saved to: " + uploadDir.getAbsolutePath());
-        File savedFile = new File(uploadDir, filename);
-        file.transferTo(new File(savedFile.getAbsolutePath()));
+        Path uploadDirPath = Paths.get("ontop-cli", BASE_UPLOAD_DIR, username);
+        Files.createDirectories(uploadDirPath);
+        File savedFile = new File(uploadDirPath.toFile(), filename);
+        file.transferTo(savedFile.toPath());
+        System.out.println("File saved: " + savedFile.getAbsolutePath());
         return savedFile;
     }
 
@@ -171,144 +177,107 @@ public class OntopController {
         return conceptNames;
     }
 
-    String readMappingFileContent() {
-        /*
-          Read the content of the mapping file
-         * @return contentBuilder.toString(): Content of the mapping file
-         */
-        try {
-            String TMP_MappingFileName = "ontop-cli/" + getBaseUploadDir() + getUsername() + "/" + mappingFileName;
-            File file = new File(TMP_MappingFileName);
-            BufferedReader reader = new BufferedReader(new FileReader(file));
+    public String readMappingFileContent() {
+        String TMP_MappingFileName = buildFilePath(mappingFileName);
+        try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                contentBuilder.append(line).append("\n");
-            }
-            reader.close();
+            reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
             return contentBuilder.toString();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error reading mapping file: " + e.getMessage());
             return "Error reading mapping file.";
         }
     }
 
     public String createUserFolder(String username) {
-        /*
-          Create a folder for the user
-          @param username: Username of the user
-         * @return userFolder.toString(): Path to the user folder
-         */
-        Path userFolder = Paths.get(System.getProperty("user.dir"), "ontop-cli", "inputFiles", username);
+        Path userFolder = Paths.get("ontop-cli", "inputFiles", username);
         try {
             Files.createDirectories(userFolder);
+            return userFolder.toString();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error creating user folder: " + e.getMessage());
             return "Error creating user folder.";
         }
-        return userFolder.toString();
     }
 
+
     public String executeCommand(String command) {
-        /*
-          Execute a command in the command prompt
-          @param command: Command to be executed
-         * @return output.toString(): Output of the command
-         */
+        System.out.println("Executing command: " + command);
         StringBuilder output = new StringBuilder();
+        ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "cd ontop-cli && " + command);
         try {
-            // Change directory and execute command
-            command = "cd ontop-cli && " + command;
-
-            // Create ProcessBuilder
-            ProcessBuilder processBuilder = new ProcessBuilder();
-            processBuilder.command("cmd.exe", "/c", command); // For Windows
-
-            // Start the process
             Process process = processBuilder.start();
-
-            // Get input and error streams
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-            // Read output
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append("Output: ").append(line).append("\n");
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                 BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                reader.lines().forEach(line -> output.append("Output: ").append(line).append("\n"));
+                errorReader.lines().forEach(line -> output.append("Error: ").append(line).append("\n"));
+                System.out.println("Output: " + output.toString());
             }
-
-            //Read errors
-            while ((line = errorReader.readLine()) != null) {
-                output.append("Error: ").append(line).append("\n");
-            }
-            System.out.println("Output: " + output);
-
-//            // Wait for the process to finish
-//            int exitCode = process.waitFor();
-//            output.append("Exited with error code: ").append(exitCode);
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            int exitCode = process.waitFor();
+            output.append("Exited with error code: ").append(exitCode).append("\n");
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Command execution failed: " + e.getMessage());
         }
-        System.out.println(output);
         return output.toString();
     }
 
-    public String ontopQuery(String sparqlQuery) {
-        /*
-          Execute a SPARQL query using Ontop
-          @param sparqlQuery: SPARQL query to be executed
-         * @return result: Result of the query
-         */
-        File tempQueryFile;
-        try {
-            // Specify the ontop-cli directory within the current working directory
-            Path ontopCliDir = Paths.get(System.getProperty("user.dir"), "ontop-cli");
-            // Create the temporary file in the ontop-cli directory
-            tempQueryFile = File.createTempFile("sparqlQuery", ".txt", ontopCliDir.toFile());
-            try (FileWriter writer = new FileWriter(tempQueryFile)) {
-                writer.write(sparqlQuery);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "Error creating temporary SPARQL query file.";
+    private File createTempFile(Path directory, String content, String prefix, String suffix) throws IOException {
+        File tempFile = File.createTempFile(prefix, suffix, directory.toFile());
+        try (FileWriter writer = new FileWriter(tempFile)) {
+            writer.write(content);
         }
-        System.out.println(sparqlQuery);
-        System.out.println(tempQueryFile.getAbsolutePath());
+        System.out.println("Created temporary file: " + tempFile.getAbsolutePath());
+        return tempFile;
+    }
 
+    private String buildOntopCommand(String action, String queryFileName, String owlFileName) {
         String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
         String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
         String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;
 
-        String command = "ontop query -m " + TMP_MappingFileName +
-                " -t " + TMP_OWLFileName +
-                " -p " + TMP_PropertiesFileName +
-                " -q " + tempQueryFile.getName();
+        return String.format("ontop %s -m %s -t %s -p %s %s", action, TMP_MappingFileName, TMP_OWLFileName, TMP_PropertiesFileName,
+                queryFileName != null ? "-q " + queryFileName : "");
+    }
 
-        String result = executeCommand(command);
-
-        // Delete the temporary SPARQL query file
-        if (tempQueryFile != null && tempQueryFile.exists()) {
-            tempQueryFile.delete();
+    private void deleteTempFile(File file) {
+        if (file != null && file.exists()) {
+            file.delete();
         }
-        return result;
+    }
+
+    public String ontopQuery(String sparqlQuery, String owlFileType) {
+        Path ontopCliDir = Paths.get(System.getProperty("user.dir"), "ontop-cli");
+        try {
+            // Create a temporary SPARQL query file
+            File tempQueryFile = createTempFile(ontopCliDir, sparqlQuery, "sparqlQuery", ".txt");
+
+            // Build command with temporary file
+            String command = buildOntopCommand("query", tempQueryFile.getName(), owlFileType);
+
+            // Execute command and handle result
+            try {
+                return executeCommand(command);
+            } finally {
+                // Ensure the temporary file is deleted
+                deleteTempFile(tempQueryFile);
+            }
+        } catch (IOException e) {
+            return "Error executing SPARQL query: " + e.getMessage();
+        }
     }
 
     public String ontopBootstrap(String baseIRI) {
-        /*
-          Bootstrap Ontop
-          @param baseIRI: Base IRI
-         * @return readMappingFileContent(): Content of the mapping file
-         */
-        String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
-        String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName + "_tmp";
-        String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;
-        String command = "ontop bootstrap --base-iri " + baseIRI + " -m " + TMP_MappingFileName +
-                " -t " + TMP_OWLFileName +
-                " -p " + TMP_PropertiesFileName;
+        // Update the owlFileName to include "_tmp" before the extension
+        String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
 
-        System.out.println(command);
+        // Build the command for bootstrapping
+        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, owlFileName);
+
+        // Execute the command
         executeCommand(command);
+
+        // Return the content of the mapping file
         return readMappingFileContent();
     }
 

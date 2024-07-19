@@ -22,7 +22,8 @@ public class SimilarityController {
             * @param threshold: Threshold value
             * @return: String
          */
-        String inputKRSSFile = "./ontop-cli/" + ontopController.getBaseUploadDir() + ontopController.getUsername() + "/";
+        System.out.println("Threshold: " + threshold);
+        String inputKRSSFile = ontopController.buildFilePath("");
         System.out.println("Input KRSS File: " + inputKRSSFile);
         String preferenceProfileDir = "./input/preference-profile";
         SimExplainer simExplainerKRSS = new SimExplainer(inputKRSSFile, preferenceProfileDir);

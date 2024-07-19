@@ -218,13 +218,15 @@ function sendQuery() {
      * Send the SPARQL query to the server and display the result.
      */
     let sparqlQuery = document.getElementById('sparqlQuery').value;
+    let owlFileType = document.getElementById('owlFilenameDropdown').value;
     console.log('Sending SPARQL query:', sparqlQuery);
+    console.log('OWL File Type:', owlFileType);
     let requestOptions = {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({query: sparqlQuery})
+        body: JSON.stringify({query: sparqlQuery , owlFileType: owlFileType} )
     };
 
     // Send the HTTP request
@@ -317,4 +319,28 @@ function SimilarityMeasureAllConcept() {
             document.getElementById('sparql-Result').value = data;
         })
         .catch(error => console.error('Error generating similarity query:', error));
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    getOWLFilename();
+});
+
+function getOWLFilename() {
+    /**
+     * Get the OWL filenames from the server and populate the dropdown.
+     */
+    fetch('/getOWLFilename')
+        .then(response => response.json())
+        .then(data => {
+            const dropdown = document.getElementById('owlFilenameDropdown');
+            dropdown.innerHTML = ''; // Clear existing options
+
+            data.forEach(filename => {
+                const option = document.createElement('option');
+                option.value = filename;
+                option.textContent = filename;
+                dropdown.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error getting OWL filenames:', error));
 }

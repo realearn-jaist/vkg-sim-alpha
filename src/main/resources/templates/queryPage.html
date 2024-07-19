@@ -29,6 +29,12 @@
         </nav>
 
         <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4">
+            <div class="mb-3 py-5 px-5">
+                <label for="owlFilenameDropdown">Select OWL Filename:</label>
+                <select class="form-control" id="owlFilenameDropdown">
+                    <option value="" disabled selected>Select filename</option>
+                </select>
+            </div>
             <div id="querySection" class="container mt-5 py-3 ">
                 <h3 class="text-center py-3 px-3" style="color: black;">Query Section</h3>
                 <div class="checkbox-container">
@@ -47,8 +53,8 @@
                     <output class="slider-value" id="sliderValue">0.5</output>
                     <input class="slider" id="similarityThreshold" max="1.0" min="0.0" name="similarityThreshold" oninput="updateSliderValue(this.value)" step="0.01" type="range" value="0.5">
                 </div>
-                <div class="mb-3 input-group py-5 px-5">
-                    <input class="form-control" id="sparqlQuery" name="sparqlQuery" placeholder="Enter SPARQL Query" type="text">
+                <div class="mb-3 input-group py-5 px-5" style="width: 100%; height: 500px;">
+                    <textarea class="form-control" id="sparqlQuery" name="sparqlQuery" placeholder="Enter SPARQL Query"></textarea>
                     <button class="btn btn-primary" onclick="sendQuery()" type="button">Send Query</button>
                 </div>
                 <div class="mb-3 py-5 px-5" id="sparqlResult">
