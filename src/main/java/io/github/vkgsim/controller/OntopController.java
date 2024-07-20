@@ -27,6 +27,8 @@ public class OntopController {
     private String owlFileName; // Name of the OWL file
     private String propertiesFileName; // Name of the properties file
     private String driverFileName; // Name of the driver file
+    private String simFileName = "similarity.txt"; // Name of the similarity file
+    private String conceptFileName = "conceptNames.txt"; // Name of the concept file
 
     ///////////////////////////
     ////Setters and Getters////
@@ -37,6 +39,14 @@ public class OntopController {
 
     public void setOwlFileName(String owlFileName) {
         this.owlFileName = owlFileName;
+    }
+
+    public void setSimFileName(String simFileName) {
+        this.simFileName = simFileName;
+    }
+
+    public String getSimFileName() {
+        return simFileName;
     }
 
     public ArrayList<String> getOWLFileNameWithBoostrap() {
@@ -101,12 +111,13 @@ public class OntopController {
     ///////////////////////////
     ///////Ontop Methods//////
     ///////////////////////////
+
+    /**
+     * Prepare the OWL file
+     * @param owlFile
+     * @return
+     */
     public OWLOntology prepareOWLFile(File owlFile) {
-        /*
-          Prepare the OWL file for processing
-          @param owlFile: OWL file to be processed
-         * @return ontology: OWLOntology object
-         */
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         OWLOntology ontology = null;
         try {
@@ -118,6 +129,11 @@ public class OntopController {
         return ontology;
     }
 
+    /**
+     * Save the mapping file
+     * @param mapping
+     * @return
+     */
     public String saveMapping(String mapping) {
         String TMP_MappingFileName = buildFilePath(mappingFileName);
         try (FileWriter writer = new FileWriter(TMP_MappingFileName)) {
@@ -128,6 +144,13 @@ public class OntopController {
         return mapping;
     }
 
+    /**
+     * Save the uploaded file
+     * @param file
+     * @param filename
+     * @return
+     * @throws IOException
+     */
     public File saveUploadedFile(MultipartFile file, String filename) throws IOException {
         Path uploadDirPath = Paths.get("ontop-cli", BASE_UPLOAD_DIR, username);
         Files.createDirectories(uploadDirPath);
@@ -137,13 +160,23 @@ public class OntopController {
         return savedFile;
     }
 
+    public File saveUploadedFile(MultipartFile file, String filename, String type) throws IOException {
+        Path uploadDirPath = Paths.get("ontop-cli", "jdbc");
+        Files.createDirectories(uploadDirPath);
+        File savedFile = new File(uploadDirPath.toFile(), filename);
+        file.transferTo(savedFile.toPath());
+        System.out.println("File saved: " + savedFile.getAbsolutePath());
+        return savedFile;
+    }
+
+
+    /**
+     * Retrieve object properties for a given OWL class
+     * @param ontology
+     * @param owlClass
+     * @param shortFormProvider
+     */
     public void addObjectProperties(OWLOntology ontology, OWLClass owlClass, ShortFormProvider shortFormProvider) {
-        /*
-          Retrieve object properties for a given OWL class
-          @param ontology: OWLOntology object
-          @param owlClass: OWLClass object
-          @param shortFormProvider: ShortFormProvider object
-         */
         for (OWLIndividual individual : owlClass.getIndividuals(ontology)) {
             for (OWLObjectPropertyAssertionAxiom axiom : ontology.getObjectPropertyAssertionAxioms(individual)) {
                 OWLObjectProperty property = axiom.getProperty().asOWLObjectProperty();
@@ -155,12 +188,12 @@ public class OntopController {
         }
     }
 
+    /**
+     * Retrieve concept names from the OWL file
+     * @param owlFile
+     * @return
+     */
     public List<String> retrieveConceptName(File owlFile) {
-        /*
-          Retrieve concept names from the OWL file
-          @param owlFile: OWL file
-         * @return conceptNames: List of concept names
-         */
         List<String> conceptNames = new ArrayList<>();
         OWLOntology ontology = prepareOWLFile(owlFile);
         ShortFormProvider shortFormProvider = new SimpleShortFormProvider();
@@ -174,9 +207,34 @@ public class OntopController {
                 conceptNames.add(className1);
             }
         }
+        // save all concept names to a file
+        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+        try (FileWriter writer = new FileWriter(TMP_ConceptFileName)) {
+            for (String conceptName : conceptNames) {
+                writer.write(conceptName + "\n");
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to save concept names: " + e.getMessage());
+        }
+        System.out.println("Concept names saved to file: " + TMP_ConceptFileName);
         return conceptNames;
     }
 
+    public String readSimilarityFileContent() {
+        String TMP_MappingFileName = buildFilePath(simFileName);
+        try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
+            StringBuilder contentBuilder = new StringBuilder();
+            reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
+            return contentBuilder.toString();
+        } catch (IOException e) {
+            System.err.println("Error reading mapping file: " + e.getMessage());
+            return "Error reading mapping file.";
+        }
+    }
+    /**
+     * Read the content of the mapping file
+     * @return
+     */
     public String readMappingFileContent() {
         String TMP_MappingFileName = buildFilePath(mappingFileName);
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
@@ -189,6 +247,11 @@ public class OntopController {
         }
     }
 
+    /**
+     * Create a user folder
+     * @param username
+     * @return
+     */
     public String createUserFolder(String username) {
         Path userFolder = Paths.get("ontop-cli", "inputFiles", username);
         try {
@@ -200,7 +263,11 @@ public class OntopController {
         }
     }
 
-
+    /**
+     * Execute a command
+     * @param command
+     * @return
+     */
     public String executeCommand(String command) {
         System.out.println("Executing command: " + command);
         StringBuilder output = new StringBuilder();
@@ -222,6 +289,15 @@ public class OntopController {
         return output.toString();
     }
 
+    /**
+     * Create a temporary file
+     * @param directory
+     * @param content
+     * @param prefix
+     * @param suffix
+     * @return
+     * @throws IOException
+     */
     private File createTempFile(Path directory, String content, String prefix, String suffix) throws IOException {
         File tempFile = File.createTempFile(prefix, suffix, directory.toFile());
         try (FileWriter writer = new FileWriter(tempFile)) {
@@ -231,6 +307,13 @@ public class OntopController {
         return tempFile;
     }
 
+    /**
+     * Build the Ontop command
+     * @param action
+     * @param queryFileName
+     * @param owlFileName
+     * @return
+     */
     private String buildOntopCommand(String action, String queryFileName, String owlFileName) {
         String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
         String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
@@ -240,12 +323,22 @@ public class OntopController {
                 queryFileName != null ? "-q " + queryFileName : "");
     }
 
+    /**
+     * Delete a temporary file
+     * @param file
+     */
     private void deleteTempFile(File file) {
         if (file != null && file.exists()) {
             file.delete();
         }
     }
 
+    /**
+     * Execute a SPARQL query
+     * @param sparqlQuery
+     * @param owlFileType
+     * @return
+     */
     public String ontopQuery(String sparqlQuery, String owlFileType) {
         Path ontopCliDir = Paths.get(System.getProperty("user.dir"), "ontop-cli");
         try {
@@ -267,6 +360,11 @@ public class OntopController {
         }
     }
 
+    /**
+     * Bootstrap the Ontop CLI
+     * @param baseIRI
+     * @return
+     */
     public String ontopBootstrap(String baseIRI) {
         // Update the owlFileName to include "_tmp" before the extension
         String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
@@ -281,5 +379,16 @@ public class OntopController {
         return readMappingFileContent();
     }
 
+    public String readConceptNameFile() {
+        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+        try (BufferedReader reader = new BufferedReader(new FileReader(TMP_ConceptFileName))) {
+            StringBuilder contentBuilder = new StringBuilder();
+            reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
+            return contentBuilder.toString();
+        } catch (IOException e) {
+            System.err.println("Error reading concept names file: " + e.getMessage());
+            return "Error reading concept names file.";
+        }
 
+}
 }

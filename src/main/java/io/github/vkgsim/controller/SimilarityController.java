@@ -4,6 +4,11 @@ import org.springframework.stereotype.Component;
 import sim.explainer.library.SimExplainer;
 import sim.explainer.library.enumeration.TypeConstant;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @Component
@@ -16,13 +21,12 @@ public class SimilarityController {
         this.ontopController = ontopController;
     }
 
-    public String fetchAllThresholdConceptPair(String threshold) {
+    public String fetchAllThresholdConceptPair() {
         /*
-            * Fetch all threshold concept pair from the KRSS file
-            * @param threshold: Threshold value
-            * @return: String
+         * Fetch all threshold concept pair from the KRSS file
+         * @param threshold: Threshold value
+         * @return: String
          */
-        System.out.println("Threshold: " + threshold);
         String inputKRSSFile = ontopController.buildFilePath("");
         System.out.println("Input KRSS File: " + inputKRSSFile);
         String preferenceProfileDir = "./input/preference-profile";
@@ -39,14 +43,28 @@ public class SimilarityController {
                 String concept2 = conceptNamesKRSS.get(j);
                 String result_krss = simExplainerKRSS.similarity(TypeConstant.DYNAMIC_SIMPI, concept1, concept2).toString();
                 System.out.println("Similarity between " + concept1 + " and " + concept2 + ": " + result_krss);
-                boolean b = Float.parseFloat(result_krss) > Float.parseFloat(threshold);
-                if (b) {
-                    resultBuilder.append("Similarity between ").append(concept1).append(" and ").append(concept2).append(": ").append(result_krss).append("\n");
-                }
+                resultBuilder.append(concept1).append(",").append(concept2).append(",").append(result_krss).append("\n");
             }
         }
 
+        //save result to file
+        String outputKRSSFile = ontopController.buildFilePath("similarity.txt");
+        saveResult(outputKRSSFile, resultBuilder.toString());
         return resultBuilder.toString();
+    }
+
+    private void saveResult(String outputKRSSFile, String content) {
+        try {
+            Path outputPath = Paths.get(outputKRSSFile);
+            // Ensure the parent directories exist
+            Files.createDirectories(outputPath.getParent());
+            // Write the content to the file
+            Files.write(outputPath, content.getBytes());
+            System.out.println("File saved: " + outputPath.toAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Failed to save file: " + outputKRSSFile);
+        }
     }
 
 }

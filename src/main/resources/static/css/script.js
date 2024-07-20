@@ -70,6 +70,7 @@ function uploadFile() {
         .then(data => {
             console.log('Response from server:', data);
             findAllConceptNames();
+            SimilarityMeasureAllConcept();
         })
         .catch(error => {
             console.error('Error sending form data:', error);
@@ -226,7 +227,7 @@ function sendQuery() {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({query: sparqlQuery , owlFileType: owlFileType} )
+        body: JSON.stringify({query: sparqlQuery, owlFileType: owlFileType})
     };
 
     // Send the HTTP request
@@ -280,7 +281,7 @@ function SimilarityMode() {
             if (this.checked && this.id === 'similarityQuery') {
                 thresholdContainer.style.display = 'block';
                 document.getElementById('standardQuery').checked = false;
-                SimilarityMeasureAllConcept();
+                readSimilarityFileContent();
             } else if (this.checked && this.id === 'standardQuery') {
                 thresholdContainer.style.display = 'none';
                 // Uncheck the other checkbox
@@ -297,7 +298,42 @@ function updateSliderValue(value) {
      * Update the slider value based on the slider position.
      */
     document.getElementById('sliderValue').textContent = value;
-    SimilarityMeasureAllConcept();
+    readSimilarityFileContent(value);
+}
+
+function readSimilarityFileContent(threshold) {
+    /**
+     * Read the similarity file content from the server and display it in the textarea.
+     */
+    fetch('/readSimilarityFileContent')
+        .then(response => response.text())
+        .then(data => {
+            // Split the data into lines
+            let lines = data.split('\n');
+            let result = '';
+            // Process each line
+
+            threshold = document.getElementById('similarityThreshold').value;
+
+            lines.forEach(line => {
+                if (line.trim()) {  // Check for non-empty line
+                    let parts = line.split(',');
+                    if (parts.length === 3) {
+                        let concept1 = parts[0];
+                        let concept2 = parts[1];
+                        let similarity = parts[2];
+                        // Check if similarity is above threshold
+                        if (parseFloat(similarity) >= parseFloat(threshold)) {
+                            result += `Concept 1: ${concept1}, Concept 2: ${concept2}, Similarity: ${similarity}\n`;
+                        }
+                    }
+                }
+            });
+            console.log(result);  // Log the formatted result
+            // Update the textarea with the formatted result
+            document.getElementById('sparql-Result').value = result;
+        })
+        .catch(error => console.error('Error reading Similarity file:', error));
 }
 
 
@@ -305,29 +341,35 @@ function SimilarityMeasureAllConcept() {
     /**
      * Generate the similarity measure query for all concepts based on the threshold entered by the user.
      */
-    let threshold = document.getElementById('similarityThreshold').value;
-    console.log('Threshold:', threshold);
     fetch('/similarityMeasureAllConcept', {
-        method: 'POST', // Assuming you want to send a POST request
+        method: 'GET', // Changed to GET method
         headers: {
             'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({threshold: threshold}),
+        }
     })
         .then(response => response.text())
         .then(data => {
-            document.getElementById('sparql-Result').value = data;
+            console.log('Response from server:', data);
         })
         .catch(error => console.error('Error generating similarity query:', error));
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    getOWLFilename();
+
+document.addEventListener("DOMContentLoaded", function () {
+    const queryPage = document.getElementById('queryPage');
+    const mappingPage = document.getElementById('mappingPage');
+    if (queryPage) {
+        getOWLFilename();
+        readConceptNameFile();
+    }
+    if (mappingPage) {
+        readConceptNameFile();
+    }
 });
 
 function getOWLFilename() {
     /**
-     * Get the OWL filenames from the server and populate the dropdown.
+     * Get the OWL filenames (normal + bootstrap) from the server and populate the dropdown.
      */
     fetch('/getOWLFilename')
         .then(response => response.json())
@@ -343,4 +385,19 @@ function getOWLFilename() {
             });
         })
         .catch(error => console.error('Error getting OWL filenames:', error));
+}
+
+function readConceptNameFile() {
+    fetch('/readConceptNameFile')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(data => {
+            document.getElementById('allConceptName').value = data;
+        })
+        .catch(error => console.error('Error reading concept names:', error));
+
 }

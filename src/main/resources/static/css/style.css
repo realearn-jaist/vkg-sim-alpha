@@ -4,7 +4,7 @@ body {
 }
 
 .background-image {
-    background-image: url('https://musedesignawards.com/upload/entry/files/ME210178/small/39921657782437.jpg');
+    background-image: url('https://wallpapers.com/images/featured/minimalist-7xpryajznty61ra3.jpg');
     background-size: cover;
     background-repeat: repeat;
     height: 100vh;
@@ -15,7 +15,7 @@ body {
 .sidebar {
     height: 100vh;
     padding: 1rem;
-    background-color: coral;
+    background-color: #1c1b1b;
     color: white;
     position: fixed;
     top: 0;

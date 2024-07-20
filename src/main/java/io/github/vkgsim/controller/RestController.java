@@ -43,7 +43,7 @@ public class RestController {
             File owl = ontopController.saveUploadedFile(owlFile, owlFile.getOriginalFilename());
             File mapping = ontopController.saveUploadedFile(mappingFile, mappingFile.getOriginalFilename());
             File properties = ontopController.saveUploadedFile(propertiesFile, propertiesFile.getOriginalFilename());
-            File driver = ontopController.saveUploadedFile(driverFile, driverFile.getOriginalFilename());
+            File driver = ontopController.saveUploadedFile(driverFile, driverFile.getOriginalFilename(), "driver");
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -90,15 +90,24 @@ public class RestController {
         return ontopController.readMappingFileContent();
     }
 
+    @GetMapping("/readSimilarityFileContent")
+    public String  readSimilarityFileContent() {
+        return ontopController.readSimilarityFileContent();
+    }
+
     // This method is used to measure the similarity in all concept pairs
-    @PostMapping("/similarityMeasureAllConcept")
-    public String similarityMeasureAllConcept(@RequestBody Map<String, String> request) {
-        String threshold = request.get("threshold");
-        return similarityController.fetchAllThresholdConceptPair(threshold);
+    @GetMapping("/similarityMeasureAllConcept")
+    public String similarityMeasureAllConcept() {
+        return similarityController.fetchAllThresholdConceptPair();
     }
 
     @GetMapping("/getOWLFilename")
     public List<String> getOWLFilename() {
         return ontopController.getOWLFileNameWithBoostrap();
+    }
+
+    @GetMapping("/readConceptNameFile")
+    public String readConceptNameFile() {
+        return ontopController.readConceptNameFile();
     }
 }
