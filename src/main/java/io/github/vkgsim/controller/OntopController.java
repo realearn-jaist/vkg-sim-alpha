@@ -220,6 +220,10 @@ public class OntopController {
         return conceptNames;
     }
 
+    /**
+     * Read the content of similarity file
+     * @return
+     */
     public String readSimilarityFileContent() {
         String TMP_MappingFileName = buildFilePath(simFileName);
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
@@ -231,6 +235,24 @@ public class OntopController {
             return "Error reading mapping file.";
         }
     }
+
+    /**
+     * Read the content of concept name File
+     * @return
+     */
+    public String readConceptNameFile() {
+        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+        try (BufferedReader reader = new BufferedReader(new FileReader(TMP_ConceptFileName))) {
+            StringBuilder contentBuilder = new StringBuilder();
+            reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
+            return contentBuilder.toString();
+        } catch (IOException e) {
+            System.err.println("Error reading concept names file: " + e.getMessage());
+            return "Error reading concept names file.";
+        }
+
+    }
+
     /**
      * Read the content of the mapping file
      * @return
@@ -273,9 +295,11 @@ public class OntopController {
         StringBuilder output = new StringBuilder();
         ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "cd ontop-cli && " + command);
         try {
+            System.out.println("Starting command execution...");
             Process process = processBuilder.start();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                  BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                System.out.println("Command executed successfully.");
                 reader.lines().forEach(line -> output.append("Output: ").append(line).append("\n"));
                 errorReader.lines().forEach(line -> output.append("Error: ").append(line).append("\n"));
                 System.out.println("Output: " + output.toString());
@@ -378,17 +402,4 @@ public class OntopController {
         // Return the content of the mapping file
         return readMappingFileContent();
     }
-
-    public String readConceptNameFile() {
-        String TMP_ConceptFileName = buildFilePath(conceptFileName);
-        try (BufferedReader reader = new BufferedReader(new FileReader(TMP_ConceptFileName))) {
-            StringBuilder contentBuilder = new StringBuilder();
-            reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
-            return contentBuilder.toString();
-        } catch (IOException e) {
-            System.err.println("Error reading concept names file: " + e.getMessage());
-            return "Error reading concept names file.";
-        }
-
-}
 }

@@ -66,7 +66,7 @@ public class RestController {
     ) {
         String sparqlQuery = request.get("query");
         String owlFileType = request.get("owlFileType");
-        return ontopController.ontopQuery(String.valueOf(sparqlQuery) , owlFileType);
+        return ontopController.ontopQuery(String.valueOf(sparqlQuery), owlFileType);
     }
 
     // This method is used to generate the mapping file
@@ -90,9 +90,16 @@ public class RestController {
         return ontopController.readMappingFileContent();
     }
 
+    // This method is used to read the similarity file content
     @GetMapping("/readSimilarityFileContent")
-    public String  readSimilarityFileContent() {
+    public String readSimilarityFileContent() {
         return ontopController.readSimilarityFileContent();
+    }
+
+    // This method is used to read the concept name file content
+    @GetMapping("/readConceptNameFile")
+    public String readConceptNameFile() {
+        return ontopController.readConceptNameFile();
     }
 
     // This method is used to measure the similarity in all concept pairs
@@ -101,13 +108,10 @@ public class RestController {
         return similarityController.fetchAllThresholdConceptPair();
     }
 
+    // This method is used to retrieve the owl file name (normal and bootstrap)
     @GetMapping("/getOWLFilename")
     public List<String> getOWLFilename() {
         return ontopController.getOWLFileNameWithBoostrap();
     }
 
-    @GetMapping("/readConceptNameFile")
-    public String readConceptNameFile() {
-        return ontopController.readConceptNameFile();
-    }
 }

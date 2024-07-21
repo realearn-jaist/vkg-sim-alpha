@@ -21,12 +21,11 @@ public class SimilarityController {
         this.ontopController = ontopController;
     }
 
+    /**
+     * This method is used to fetch all threshold concept pairs
+     * @return String
+     */
     public String fetchAllThresholdConceptPair() {
-        /*
-         * Fetch all threshold concept pair from the KRSS file
-         * @param threshold: Threshold value
-         * @return: String
-         */
         String inputKRSSFile = ontopController.buildFilePath("");
         System.out.println("Input KRSS File: " + inputKRSSFile);
         String preferenceProfileDir = "./input/preference-profile";
@@ -49,11 +48,16 @@ public class SimilarityController {
 
         //save result to file
         String outputKRSSFile = ontopController.buildFilePath("similarity.txt");
-        saveResult(outputKRSSFile, resultBuilder.toString());
+        saveSimilarityResultFile(outputKRSSFile, resultBuilder.toString());
         return resultBuilder.toString();
     }
 
-    private void saveResult(String outputKRSSFile, String content) {
+    /**
+     * This method is used to save the similarity result to a file
+     * @param outputKRSSFile
+     * @param content
+     */
+    private void saveSimilarityResultFile(String outputKRSSFile, String content) {
         try {
             Path outputPath = Paths.get(outputKRSSFile);
             // Ensure the parent directories exist

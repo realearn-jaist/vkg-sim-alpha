@@ -21,24 +21,28 @@ function createUserFolder() {
      * Create a folder for the user based on the username entered in the form.
      * */
     const username = document.getElementById('userFolder').value;
-    if (/\s/.test(username)) {
+    if (username.trim() === '') {
+        alert('Username cannot be empty.');
+    } else if (/\s/.test(username)) {
         alert('Username should not contain spaces.');
     }
-    console.log(`Creating folder for user: ${username}`);
-    fetch(`/createUserFolder?username=${username}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.text();
-        })
-        .then(data => {
-            enableForm();
-            console.log('Response from server:', data);
-        })
-        .catch(error => {
-            console.error('Error creating user folder:', error);
-        });
+    else {
+        console.log(`Creating folder for user: ${username}`);
+        fetch(`/createUserFolder?username=${username}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => {
+                enableForm();
+                console.log('Response from server:', data);
+            })
+            .catch(error => {
+                console.error('Error creating user folder:', error);
+            });
+    }
 }
 
 function uploadFile() {
@@ -124,6 +128,12 @@ function findAllConceptNames() {
             const ulElement = document.getElementById('allConceptNameList');
             ulElement.innerHTML = ''; // Clear existing list items
 
+            // Create and insert the topic element
+            const topicElement = document.createElement('h3');
+            topicElement.textContent = 'All concept names in the ontology';
+            ulElement.appendChild(topicElement);
+            ulElement.appendChild(document.createElement('br'))
+
             data.forEach(concept => {
                 const li = document.createElement('li');
                 li.textContent = concept;
@@ -138,8 +148,10 @@ function findAllConceptNames() {
 function validateBaseIRI(baseIRI) {
     /**
      * Validate the base IRI entered by the user.
+     * Ensures it starts with "http://" and has something after "http://".
      */
-    return baseIRI.startsWith("http://");
+    const regex = /^http:\/\/.+/;
+    return regex.test(baseIRI);
 }
 
 
@@ -161,6 +173,9 @@ function generateMapping() {
     /**
      * Generate the mapping based on the base IRI entered by the user.
      */
+    //clear text area before generating mapping
+    document.getElementById('mappingEditor').value = '';
+
     const baseIRI = document.getElementById('baseIRI').value;
     if (validateBaseIRI(baseIRI)) {
         console.log('Generating mapping...')
@@ -172,7 +187,7 @@ function generateMapping() {
             })
             .catch(error => console.error('Error generating mapping:', error));
     } else {
-        alert("Base IRI must start with 'http://'");
+        alert("Base IRI must start with 'http://something'");
     }
 }
 
@@ -218,6 +233,9 @@ function sendQuery() {
     /**
      * Send the SPARQL query to the server and display the result.
      */
+    //clear text area before sending query
+    document.getElementById('sparql-Result').value = '';
+
     let sparqlQuery = document.getElementById('sparqlQuery').value;
     let owlFileType = document.getElementById('owlFilenameDropdown').value;
     console.log('Sending SPARQL query:', sparqlQuery);
@@ -242,7 +260,7 @@ function sendQuery() {
         .then(data => {
             console.log('Response from server:', data);
             // Handle the response data as needed
-            document.getElementById('sparql-Result').innerHTML = data;
+            document.getElementById('sparql-Result').value = data;
         })
         .catch(error => {
             console.error('Error sending query:', error);
@@ -356,6 +374,10 @@ function SimilarityMeasureAllConcept() {
 
 
 document.addEventListener("DOMContentLoaded", function () {
+    /**
+     * Call the appropriate functions based on the page loaded.
+     * @type {HTMLElement}
+     */
     const queryPage = document.getElementById('queryPage');
     const mappingPage = document.getElementById('mappingPage');
     if (queryPage) {
@@ -388,6 +410,9 @@ function getOWLFilename() {
 }
 
 function readConceptNameFile() {
+    /**
+     * Read the concept names from the server and display them in the textarea.
+     */
     fetch('/readConceptNameFile')
         .then(response => {
             if (!response.ok) {
