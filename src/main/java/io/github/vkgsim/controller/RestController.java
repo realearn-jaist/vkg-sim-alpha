@@ -105,7 +105,7 @@ public class RestController {
     // This method is used to measure the similarity in all concept pairs
     @GetMapping("/similarityMeasureAllConcept")
     public String similarityMeasureAllConcept() {
-        return similarityController.fetchAllThresholdConceptPair();
+        return similarityController.readAllConceptWithThreshold();
     }
 
     // This method is used to retrieve the owl file name (normal and bootstrap)

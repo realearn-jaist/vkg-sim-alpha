@@ -175,6 +175,7 @@ public class OntopController {
             writer.write(mapping);
         } catch (IOException e) {
             System.err.println("Failed to save mapping: " + e.getMessage());
+            return "Error saving mapping file.";
         }
         return mapping;
     }
@@ -274,8 +275,8 @@ public class OntopController {
             reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
             return contentBuilder.toString();
         } catch (IOException e) {
-            System.err.println("Error reading mapping file: " + e.getMessage());
-            return "Error reading mapping file.";
+            System.err.println("Error reading similarity file: " + e.getMessage());
+            return "Error reading similarity file.";
         }
     }
 

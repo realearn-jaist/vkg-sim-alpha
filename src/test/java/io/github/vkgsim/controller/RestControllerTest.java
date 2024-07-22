@@ -170,7 +170,7 @@ public class RestControllerTest {
      */
     @Test
     public void testSimilarityMeasureAllConcept() throws Exception {
-        when(similarityController.fetchAllThresholdConceptPair()).thenReturn("All concept pairs similarity");
+        when(similarityController.readAllConceptWithThreshold()).thenReturn("All concept pairs similarity");
 
         mockMvc.perform(get("/similarityMeasureAllConcept"))
                 .andExpect(status().isOk())

@@ -24,13 +24,13 @@ public class SimilarityController {
      * This method is used to fetch all threshold concept pair
      * @return
      */
-    public String fetchAllThresholdConceptPair() {
+    public String readAllConceptWithThreshold() {
         try{
         String inputKRSSFile = ontopController.buildFilePath("");
-        System.out.println("Input KRSS File: " + inputKRSSFile);
-        String preferenceProfileDir = "./input/preference-profile";
-        SimExplainer simExplainerKRSS = new SimExplainer(inputKRSSFile, preferenceProfileDir);
-        System.out.println(simExplainerKRSS);
+        //System.out.println("Input KRSS File: " + inputKRSSFile);
+        //String preferenceProfileDir = "./input/preference-profile";
+        SimExplainer simExplainerKRSS = new SimExplainer(inputKRSSFile);
+        //System.out.println(simExplainerKRSS);
 
         List<String> conceptNamesKRSS = simExplainerKRSS.retrieveConceptName();
         System.out.println("KRSS Concept Names: " + conceptNamesKRSS);

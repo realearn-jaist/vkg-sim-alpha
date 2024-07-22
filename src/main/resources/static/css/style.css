@@ -228,7 +228,7 @@ textarea::placeholder {
 .popup .popuptext {
     visibility: hidden; /* Initially hidden */
     width: 500px;
-    background-color: darksalmon;
+    background-color: #cdcbcb;
     color: black;
     text-align: left;
     border-radius: 6px;
@@ -250,4 +250,10 @@ textarea::placeholder {
 
 .popuptext .code-snippet {
     color: darkblue;
+}
+
+.success-message {
+    display: none;
+    color: green;
+    margin-top: 10px;
 }
