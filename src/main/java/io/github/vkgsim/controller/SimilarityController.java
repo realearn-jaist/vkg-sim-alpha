@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 import sim.explainer.library.SimExplainer;
 import sim.explainer.library.enumeration.TypeConstant;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,10 +21,11 @@ public class SimilarityController {
     }
 
     /**
-     * This method is used to fetch all threshold concept pairs
-     * @return String
+     * This method is used to fetch all threshold concept pair
+     * @return
      */
     public String fetchAllThresholdConceptPair() {
+        try{
         String inputKRSSFile = ontopController.buildFilePath("");
         System.out.println("Input KRSS File: " + inputKRSSFile);
         String preferenceProfileDir = "./input/preference-profile";
@@ -50,6 +50,10 @@ public class SimilarityController {
         String outputKRSSFile = ontopController.buildFilePath("similarity.txt");
         saveSimilarityResultFile(outputKRSSFile, resultBuilder.toString());
         return resultBuilder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
     }
 
     /**
@@ -57,7 +61,7 @@ public class SimilarityController {
      * @param outputKRSSFile
      * @param content
      */
-    private void saveSimilarityResultFile(String outputKRSSFile, String content) {
+    void saveSimilarityResultFile(String outputKRSSFile, String content) {
         try {
             Path outputPath = Paths.get(outputKRSSFile);
             // Ensure the parent directories exist

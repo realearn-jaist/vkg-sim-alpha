@@ -19,8 +19,9 @@ import java.util.Set;
 @Component
 public class OntopController {
 
-    private static final String BASE_UPLOAD_DIR = "inputFiles/"; // Directory to store uploaded files
-    private final Set<String> processedProperties = new HashSet<>(); // Set to store processed properties
+    private static String OntopDir = "ontop-cli/";
+    private static String BASE_UPLOAD_DIR = "inputFiles/"; // Directory to store uploaded files
+    final Set<String> processedProperties = new HashSet<>(); // Set to store processed properties
 
     private String username; // Username of the user
     private String mappingFileName; // Name of the mapping file
@@ -29,10 +30,12 @@ public class OntopController {
     private String driverFileName; // Name of the driver file
     private String simFileName = "similarity.txt"; // Name of the similarity file
     private String conceptFileName = "conceptNames.txt"; // Name of the concept file
+    private ProcessBuilder processBuilder; // Process builder to execute commands
 
     ///////////////////////////
     ////Setters and Getters////
     ///////////////////////////
+    // Getter and Setter for owlFileName
     public String getOwlFileName() {
         return owlFileName;
     }
@@ -41,24 +44,89 @@ public class OntopController {
         this.owlFileName = owlFileName;
     }
 
-    public void setSimFileName(String simFileName) {
-        this.simFileName = simFileName;
-    }
-
+    // Getter and Setter for simFileName
     public String getSimFileName() {
         return simFileName;
     }
 
-    public ArrayList<String> getOWLFileNameWithBoostrap() {
-        //String baseOWLFilename = buildFilePath("");
-        ArrayList<String> fileNames = new ArrayList<>();
-        addFileNameIfExists(fileNames, this.owlFileName);
-        addFileNameIfExists(fileNames, getBootstrapFileName());
-        return fileNames;
+    public void setSimFileName(String simFileName) {
+        this.simFileName = simFileName;
     }
 
-    private String getBootstrapFileName() {
+    // Getter and Setter for conceptFileName
+    public String getConceptFileName() {
+        return conceptFileName;
+    }
+
+    public void setConceptFileName(String conceptFileName) {
+        this.conceptFileName = conceptFileName;
+    }
+
+    // Getter and Setter for propertiesFileName
+    public String getPropertiesFileName() {
+        return propertiesFileName;
+    }
+
+    public void setPropertiesFileName(String propertiesFileName) {
+        this.propertiesFileName = propertiesFileName;
+    }
+
+    // Getter and Setter for driverFileName
+    public String getDriverFileName() {
+        return driverFileName;
+    }
+
+    public void setDriverFileName(String driverFileName) {
+        this.driverFileName = driverFileName;
+    }
+
+    // Getter and Setter for mappingFileName
+    public String getMappingFileName() {
+        return mappingFileName;
+    }
+
+    public void setMappingFileName(String mappingFileName) {
+        this.mappingFileName = mappingFileName;
+    }
+
+    // Getter and Setter for username
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    // Getter and Setter for OntopDir
+    public String getOntopDir() {
+        return OntopDir;
+    }
+
+    public void setOntopDir(String ontopDir) {
+        OntopDir = ontopDir;
+    }
+
+    // Getter and Setter for BASE_UPLOAD_DIR
+    public String getBaseUploadDir() {
+        return BASE_UPLOAD_DIR;
+    }
+
+    public void setBaseUploadDir(String baseUploadDir) {
+        BASE_UPLOAD_DIR = baseUploadDir;
+    }
+
+    // Utility Methods
+    public String buildFilePath(String fileName) {
+        return OntopDir + BASE_UPLOAD_DIR + getUsername() + "/" + fileName;
+    }
+
+    public String getBootstrapFileName() {
         return this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl";
+    }
+
+    public void setProcessBuilder(ProcessBuilder mockProcessBuilder) {
+        this.processBuilder = mockProcessBuilder;
     }
 
     private void addFileNameIfExists(List<String> fileNames, String fileName) {
@@ -68,44 +136,11 @@ public class OntopController {
         }
     }
 
-    public String buildFilePath(String fileName) {
-        return "ontop-cli/" + BASE_UPLOAD_DIR + getUsername() + "/" + fileName;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPropertiesFileName() {
-        return propertiesFileName;
-    }
-
-    public void setPropertiesFileName(String propertiesFileName) {
-        this.propertiesFileName = propertiesFileName;
-    }
-
-    public String getDriverFileName() {
-        return driverFileName;
-    }
-
-    public void setDriverFileName(String driverFileName) {
-        this.driverFileName = driverFileName;
-    }
-
-    public String getBaseUploadDir() {
-        return BASE_UPLOAD_DIR;
-    }
-
-    public String getMappingFileName() {
-        return mappingFileName;
-    }
-
-    public void setMappingFileName(String mappingFileName) {
-        this.mappingFileName = mappingFileName;
+    public ArrayList<String> getOWLFileNameWithBoostrap() {
+        ArrayList<String> fileNames = new ArrayList<>();
+        addFileNameIfExists(fileNames, this.owlFileName);
+        addFileNameIfExists(fileNames, getBootstrapFileName());
+        return fileNames;
     }
 
     ///////////////////////////
@@ -152,7 +187,7 @@ public class OntopController {
      * @throws IOException
      */
     public File saveUploadedFile(MultipartFile file, String filename) throws IOException {
-        Path uploadDirPath = Paths.get("ontop-cli", BASE_UPLOAD_DIR, username);
+        Path uploadDirPath = Paths.get(OntopDir, BASE_UPLOAD_DIR, username);
         Files.createDirectories(uploadDirPath);
         File savedFile = new File(uploadDirPath.toFile(), filename);
         file.transferTo(savedFile.toPath());
@@ -160,8 +195,16 @@ public class OntopController {
         return savedFile;
     }
 
+    /**
+     * Save the uploaded file with a specific folder that is not the user folder
+     * @param file
+     * @param filename
+     * @param type
+     * @return
+     * @throws IOException
+     */
     public File saveUploadedFile(MultipartFile file, String filename, String type) throws IOException {
-        Path uploadDirPath = Paths.get("ontop-cli", "jdbc");
+        Path uploadDirPath = Paths.get(OntopDir, "jdbc");
         Files.createDirectories(uploadDirPath);
         File savedFile = new File(uploadDirPath.toFile(), filename);
         file.transferTo(savedFile.toPath());
@@ -275,7 +318,7 @@ public class OntopController {
      * @return
      */
     public String createUserFolder(String username) {
-        Path userFolder = Paths.get("ontop-cli", "inputFiles", username);
+        Path userFolder = Paths.get(OntopDir, "inputFiles", username);
         try {
             Files.createDirectories(userFolder);
             return userFolder.toString();
@@ -322,7 +365,7 @@ public class OntopController {
      * @return
      * @throws IOException
      */
-    private File createTempFile(Path directory, String content, String prefix, String suffix) throws IOException {
+    public File createTempFile(Path directory, String content, String prefix, String suffix) throws IOException {
         File tempFile = File.createTempFile(prefix, suffix, directory.toFile());
         try (FileWriter writer = new FileWriter(tempFile)) {
             writer.write(content);
@@ -351,7 +394,7 @@ public class OntopController {
      * Delete a temporary file
      * @param file
      */
-    private void deleteTempFile(File file) {
+    public void deleteTempFile(File file) {
         if (file != null && file.exists()) {
             file.delete();
         }
@@ -364,7 +407,7 @@ public class OntopController {
      * @return
      */
     public String ontopQuery(String sparqlQuery, String owlFileType) {
-        Path ontopCliDir = Paths.get(System.getProperty("user.dir"), "ontop-cli");
+        Path ontopCliDir = Paths.get(System.getProperty("user.dir"), OntopDir);
         try {
             // Create a temporary SPARQL query file
             File tempQueryFile = createTempFile(ontopCliDir, sparqlQuery, "sparqlQuery", ".txt");
