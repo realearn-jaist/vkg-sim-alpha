@@ -291,21 +291,23 @@ public class OntopController {
     }
 
     public void saveSimResultFile(String result) {
+        System.out.println("result: " + result);
         rewritingConcept.clear();
         String[] lines = result.split("\n");
         for (String line : lines) {
             // Split the line into parts
-            String[] parts = line.split(", ");
+            String[] parts = line.split(",");
 
             // Extract Concept 1, Concept 2
-            String concept1 = parts[0].split(": ")[1];
-            String concept2 = parts[1].split(": ")[1];
+            String concept1 = parts[0];
+            String concept2 = parts[1];
 
             // Add to HashMap
             SymmetricPair<String> simConcept = new SymmetricPair<>(concept1, concept2);
             rewritingConcept.add(simConcept);
 
         }
+        System.out.println("rewritingConcept: " + rewritingConcept);
     }
 
     /**
@@ -488,8 +490,9 @@ public class OntopController {
     private void genMappingSimFile() {
         // get all concept in mapping file into list
         HashSet<String> conceptInDatabase = extractConceptInMappingFile(baseIRI);
-//        System.out.println(conceptInDatabase.toString());
+        System.out.println(conceptInDatabase.toString());
         ArrayList<SymmetricPair<String>> swapConcept = filterRewritingConcept(conceptInDatabase);
+        System.out.println(swapConcept);
         ArrayList<String> textToAppend = genSimMappingValue(swapConcept);
         addTextEOF(textToAppend);
     }

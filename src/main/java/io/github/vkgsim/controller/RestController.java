@@ -115,11 +115,6 @@ public class RestController {
         return ontopController.getOWLFileNameWithBoostrap();
     }
 
-    @GetMapping("/readConceptNameFile")
-    public String readConceptNameFile() {
-        return ontopController.readConceptNameFile();
-    }
-
     @PostMapping("/saveSimResultFile")
     public void saveSimResultFile(
             @RequestBody Map<String, String> request

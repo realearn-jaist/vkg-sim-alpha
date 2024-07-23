@@ -380,25 +380,6 @@ function saveSimResultFile(result) {
 
 }
 
-function saveSimResultFile(result) {
-
-    fetch('/saveSimResultFile', {
-        method: 'POST', // Assuming you want to send a POST request
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({result: result}),
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.text();
-        })
-        .catch(error => console.error('Error saving concept names:', error));
-
-}
-
 function loadConceptExplanation(dataString) {
     /**
      * Load the concept explanation in the list based on the similarity data.
