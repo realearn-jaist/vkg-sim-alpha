@@ -21,24 +21,27 @@ function createUserFolder() {
      * Create a folder for the user based on the username entered in the form.
      * */
     const username = document.getElementById('userFolder').value;
-    if (/\s/.test(username)) {
+    if (username.trim() === '') {
+        alert('Username cannot be empty.');
+    } else if (/\s/.test(username)) {
         alert('Username should not contain spaces.');
+    } else {
+        console.log(`Creating folder for user: ${username}`);
+        fetch(`/createUserFolder?username=${username}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => {
+                enableForm();
+                console.log('Response from server:', data);
+            })
+            .catch(error => {
+                console.error('Error creating user folder:', error);
+            });
     }
-    console.log(`Creating folder for user: ${username}`);
-    fetch(`/createUserFolder?username=${username}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.text();
-        })
-        .then(data => {
-            enableForm();
-            console.log('Response from server:', data);
-        })
-        .catch(error => {
-            console.error('Error creating user folder:', error);
-        });
 }
 
 function uploadFile() {
@@ -79,21 +82,21 @@ function uploadFile() {
 }
 
 
-function showInfo() {
+function showInfoDatabaseProperties() {
     /**
      * Show the info popup when the user clicks the info button.
      * */
-    var popup = document.getElementById("infoPopup");
+    const popup = document.getElementById("infoPopup");
     console.log(popup)
     popup.classList.toggle("show");
 }
 
 window.onclick = function (event) {
     /**
-     * Close the info popup when the user clicks outside of the popup.
+     * Close the info popup when the user clicks outside the popup.
      * */
-    var popup = document.getElementById("infoPopup");
-    var infoButton = document.querySelector(".btn-info"); // Adjust selector based on your button class or ID
+    const popup = document.getElementById("infoPopup");
+    const infoButton = document.querySelector(".btn-info"); // Adjust selector based on your button class or ID
 
     if (popup && infoButton) {
         if (event.target !== popup && !popup.contains(event.target) && event.target !== infoButton) {
@@ -124,6 +127,12 @@ function findAllConceptNames() {
             const ulElement = document.getElementById('allConceptNameList');
             ulElement.innerHTML = ''; // Clear existing list items
 
+            // Create and insert the topic element
+            const topicElement = document.createElement('h3');
+            topicElement.textContent = 'All concept names in the ontology';
+            ulElement.appendChild(topicElement);
+            ulElement.appendChild(document.createElement('br'))
+
             data.forEach(concept => {
                 const li = document.createElement('li');
                 li.textContent = concept;
@@ -138,8 +147,10 @@ function findAllConceptNames() {
 function validateBaseIRI(baseIRI) {
     /**
      * Validate the base IRI entered by the user.
+     * Ensures it starts with "http://" and has something after "http://".
      */
-    return baseIRI.startsWith("http://");
+    const regex = /^http:\/\/.+/;
+    return regex.test(baseIRI);
 }
 
 
@@ -161,6 +172,9 @@ function generateMapping() {
     /**
      * Generate the mapping based on the base IRI entered by the user.
      */
+    //clear text area before generating mapping
+    document.getElementById('mappingEditor').value = '';
+
     const baseIRI = document.getElementById('baseIRI').value;
     if (validateBaseIRI(baseIRI)) {
         console.log('Generating mapping...')
@@ -172,7 +186,7 @@ function generateMapping() {
             })
             .catch(error => console.error('Error generating mapping:', error));
     } else {
-        alert("Base IRI must start with 'http://'");
+        alert("Base IRI must start with 'http://something'");
     }
 }
 
@@ -188,8 +202,8 @@ function saveMapping() {
     /**
      * Save the edited mapping to the server
      */
-    var mappingData = document.getElementById('mappingEditor').value;
-    var requestData = {
+    const mappingData = document.getElementById('mappingEditor').value;
+    const requestData = {
         mapping: mappingData
     };
 
@@ -207,10 +221,15 @@ function saveMapping() {
             return response.text();
         })
         .then(data => {
+            //if data is not start with "Error" then mapping is saved successfully
+            if (!data.startsWith("Error")) {
+                const successMessage  = $('#successMessage');
+                successMessage.stop(true, true).fadeIn('fast').delay(1000).fadeOut('slow');
+            }
             console.log('Mapping edited successfully:', data);
         })
         .catch(error => {
-            console.error('Error editing mapping:', error);
+            console.error('Error saving mapping:', error);
         });
 }
 
@@ -218,6 +237,9 @@ function sendQuery() {
     /**
      * Send the SPARQL query to the server and display the result.
      */
+    //clear text area before sending query
+    document.getElementById('sparql-Result').value = '';
+
     let sparqlQuery = document.getElementById('sparqlQuery').value;
     let owlFileType = document.getElementById('owlFilenameDropdown').value;
     let checkedValue;
@@ -255,24 +277,13 @@ function sendQuery() {
         .then(data => {
             console.log('Response from server:', data);
             // Handle the response data as needed
-            document.getElementById('sparql-Result').innerHTML = data;
+            document.getElementById('sparql-Result').value = data;
         })
         .catch(error => {
             console.error('Error sending query:', error);
             // Handle errors appropriately
         });
 }
-
-// function checkFileSize() {
-//     var fileInput = document.getElementById('owlFile');
-//     var fileSize = fileInput.files[0].size;
-//     var maxSize = 10 * 1024 * 1024; // 10MB in bytes
-//
-//     if (fileSize > maxSize) {
-//         alert("The file size is more than 10MB, so the list of concept names will not be shown since it will take a long time.");
-//     }
-// }
-
 
 function enableForm() {
     /**
@@ -295,6 +306,7 @@ function SimilarityMode() {
                 thresholdContainer.style.display = 'block';
                 document.getElementById('standardQuery').checked = false;
                 readSimilarityFileContent();
+
             } else if (this.checked && this.id === 'standardQuery') {
                 thresholdContainer.style.display = 'none';
                 // Uncheck the other checkbox
@@ -325,7 +337,6 @@ function readSimilarityFileContent(threshold) {
             let lines = data.split('\n');
             let result = '';
             // Process each line
-
             threshold = document.getElementById('similarityThreshold').value;
 
             lines.forEach(line => {
@@ -337,15 +348,15 @@ function readSimilarityFileContent(threshold) {
                         let similarity = parts[2];
                         // Check if similarity is above threshold
                         if (parseFloat(similarity) >= parseFloat(threshold)) {
-                            result += `Concept 1: ${concept1}, Concept 2: ${concept2}, Similarity: ${similarity}\n`;
+                            result += `${concept1},${concept2},${similarity}\n`;
                         }
                     }
                 }
             });
-//            console.log(result);  // Log the formatted result
+            console.log(result);  // Log the formatted result
             saveSimResultFile(result)
-            // Update the textarea with the formatted result
-            document.getElementById('sparql-Result').value = result;
+            loadConceptExplanation(result);
+            //document.getElementById('sparql-Result').value = result;
         })
         .catch(error => console.error('Error reading Similarity file:', error));
 }
@@ -369,6 +380,63 @@ function saveSimResultFile(result) {
 
 }
 
+function saveSimResultFile(result) {
+
+    fetch('/saveSimResultFile', {
+        method: 'POST', // Assuming you want to send a POST request
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({result: result}),
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .catch(error => console.error('Error saving concept names:', error));
+
+}
+
+function loadConceptExplanation(dataString) {
+    /**
+     * Load the concept explanation in the list based on the similarity data.
+     * @type {HTMLElement}
+     */
+    const conceptList = document.getElementById('conceptListExplanation');
+    conceptList.innerHTML = ''; // Clear existing list items
+
+    if (dataString) {
+        const lines = dataString.trim().split('\n');
+
+        lines.forEach((line) => {
+            const [con1Part, con2Part, similarityPart] = line.split(',');
+            const con1 = con1Part;
+            const con2 = con2Part;
+            const similarity = similarityPart;
+
+            const listItem = document.createElement('a');
+            listItem.href = '#';
+            listItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            listItem.innerHTML = `
+                    <span>${con1}, ${con2}</span>
+                    <button class="btn btn-info btn-sm" onclick="showExplanation('${con1}', '${con2}', '${similarity}')">Show Details</button>
+                `;
+            conceptList.appendChild(listItem);
+        });
+    }
+}
+
+function showExplanation(con1, con2, similarity) {
+    /**
+     * Display the similarity details in a modal.
+     * @type {`Similarity between ${string} and ${string}: ${string}`}
+     */
+    document.getElementById('similarityDetails').innerText = `Similarity between ${con1} and ${con2}: ${similarity}`;
+    $('#detailsModal').modal('show');
+
+}
 
 function SimilarityMeasureAllConcept() {
     /**
@@ -389,6 +457,10 @@ function SimilarityMeasureAllConcept() {
 
 
 document.addEventListener("DOMContentLoaded", function () {
+    /**
+     * Call the appropriate functions based on the page loaded.
+     * @type {HTMLElement}
+     */
     const queryPage = document.getElementById('queryPage');
     const mappingPage = document.getElementById('mappingPage');
     if (queryPage) {
@@ -421,6 +493,9 @@ function getOWLFilename() {
 }
 
 function readConceptNameFile() {
+    /**
+     * Read the concept names from the server and display them in the textarea.
+     */
     fetch('/readConceptNameFile')
         .then(response => {
             if (!response.ok) {
@@ -432,5 +507,4 @@ function readConceptNameFile() {
             document.getElementById('allConceptName').value = data;
         })
         .catch(error => console.error('Error reading concept names:', error));
-
 }

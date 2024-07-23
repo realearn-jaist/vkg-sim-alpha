@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 import sim.explainer.library.SimExplainer;
 import sim.explainer.library.enumeration.TypeConstant;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,17 +20,17 @@ public class SimilarityController {
         this.ontopController = ontopController;
     }
 
-    public String fetchAllThresholdConceptPair() {
-        /*
-         * Fetch all threshold concept pair from the KRSS file
-         * @param threshold: Threshold value
-         * @return: String
-         */
+    /**
+     * This method is used to fetch all threshold concept pair
+     * @return
+     */
+    public String readAllConceptWithThreshold() {
+        try{
         String inputKRSSFile = ontopController.buildFilePath("");
-        System.out.println("Input KRSS File: " + inputKRSSFile);
-        String preferenceProfileDir = "./input/preference-profile";
-        SimExplainer simExplainerKRSS = new SimExplainer(inputKRSSFile, preferenceProfileDir);
-        System.out.println(simExplainerKRSS);
+        //System.out.println("Input KRSS File: " + inputKRSSFile);
+        //String preferenceProfileDir = "./input/preference-profile";
+        SimExplainer simExplainerKRSS = new SimExplainer(inputKRSSFile);
+        //System.out.println(simExplainerKRSS);
 
         List<String> conceptNamesKRSS = simExplainerKRSS.retrieveConceptName();
         System.out.println("KRSS Concept Names: " + conceptNamesKRSS);
@@ -49,11 +48,20 @@ public class SimilarityController {
 
         //save result to file
         String outputKRSSFile = ontopController.buildFilePath("similarity.txt");
-        saveResult(outputKRSSFile, resultBuilder.toString());
+        saveSimilarityResultFile(outputKRSSFile, resultBuilder.toString());
         return resultBuilder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
     }
 
-    private void saveResult(String outputKRSSFile, String content) {
+    /**
+     * This method is used to save the similarity result to a file
+     * @param outputKRSSFile
+     * @param content
+     */
+    void saveSimilarityResultFile(String outputKRSSFile, String content) {
         try {
             Path outputPath = Paths.get(outputKRSSFile);
             // Ensure the parent directories exist

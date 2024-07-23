@@ -4,17 +4,20 @@
 !*/
 
 !src/main/java/io/github/vkgsim/controller/**
-src/main/java/io/github/vkgsim/controller/backup.zip
 
 !src/main/java/io/github/vkgsim/Application.java
 
 !src/main/resources/**
 
+!src/test/java/io/github/vkgsim/controller/**
+!src/test/resources/**
+src/test/resources/ontop-cli/**
+
 !mvnw
 !mvnw.cmd
 !pom.xml
 
-!libs/**
+!libs/library.jar
 
 !ontop-cli/**
 ontop-cli/logback.xml

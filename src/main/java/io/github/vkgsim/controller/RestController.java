@@ -91,17 +91,25 @@ public class RestController {
         return ontopController.readMappingFileContent();
     }
 
+    // This method is used to read the similarity file content
     @GetMapping("/readSimilarityFileContent")
-    public String  readSimilarityFileContent() {
+    public String readSimilarityFileContent() {
         return ontopController.readSimilarityFileContent();
+    }
+
+    // This method is used to read the concept name file content
+    @GetMapping("/readConceptNameFile")
+    public String readConceptNameFile() {
+        return ontopController.readConceptNameFile();
     }
 
     // This method is used to measure the similarity in all concept pairs
     @GetMapping("/similarityMeasureAllConcept")
     public String similarityMeasureAllConcept() {
-        return similarityController.fetchAllThresholdConceptPair();
+        return similarityController.readAllConceptWithThreshold();
     }
 
+    // This method is used to retrieve the owl file name (normal and bootstrap)
     @GetMapping("/getOWLFilename")
     public List<String> getOWLFilename() {
         return ontopController.getOWLFileNameWithBoostrap();
