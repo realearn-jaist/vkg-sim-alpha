@@ -220,14 +220,27 @@ function sendQuery() {
      */
     let sparqlQuery = document.getElementById('sparqlQuery').value;
     let owlFileType = document.getElementById('owlFilenameDropdown').value;
+    let checkedValue;
+
+    const standardQueryCheckbox = document.querySelector('#standardQuery');
+    const similarityQueryCheckbox = document.querySelector('#similarityQuery');
+
+    if (standardQueryCheckbox.checked) {
+      checkedValue = standardQueryCheckbox.value;
+    } else {
+      checkedValue = similarityQueryCheckbox.value;
+    }
+
     console.log('Sending SPARQL query:', sparqlQuery);
     console.log('OWL File Type:', owlFileType);
+    console.log('Query Type:', checkedValue);
+
     let requestOptions = {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({query: sparqlQuery, owlFileType: owlFileType})
+        body: JSON.stringify({query: sparqlQuery, owlFileType: owlFileType, queryType: checkedValue})
     };
 
     // Send the HTTP request
@@ -329,11 +342,31 @@ function readSimilarityFileContent(threshold) {
                     }
                 }
             });
-            console.log(result);  // Log the formatted result
+//            console.log(result);  // Log the formatted result
+            saveSimResultFile(result)
             // Update the textarea with the formatted result
             document.getElementById('sparql-Result').value = result;
         })
         .catch(error => console.error('Error reading Similarity file:', error));
+}
+
+function saveSimResultFile(result) {
+
+    fetch('/saveSimResultFile', {
+        method: 'POST', // Assuming you want to send a POST request
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({result: result}),
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .catch(error => console.error('Error saving concept names:', error));
+
 }
 
 

@@ -1,5 +1,8 @@
 package io.github.vkgsim.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.github.vkgsim.util.SymmetricPair;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.ShortFormProvider;
@@ -15,6 +18,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.nio.file.StandardOpenOption;
 
 @Component
 public class OntopController {
@@ -29,6 +37,8 @@ public class OntopController {
     private String driverFileName; // Name of the driver file
     private String simFileName = "similarity.txt"; // Name of the similarity file
     private String conceptFileName = "conceptNames.txt"; // Name of the concept file
+    private String baseIRI = "http://";
+    private ArrayList<SymmetricPair<String>> rewritingConcept = new ArrayList<>();
 
     ///////////////////////////
     ////Setters and Getters////
@@ -231,6 +241,25 @@ public class OntopController {
             return "Error reading mapping file.";
         }
     }
+
+    public void saveSimResultFile(String result) {
+        rewritingConcept.clear();
+        String[] lines = result.split("\n");
+        for (String line : lines) {
+            // Split the line into parts
+            String[] parts = line.split(", ");
+
+            // Extract Concept 1, Concept 2
+            String concept1 = parts[0].split(": ")[1];
+            String concept2 = parts[1].split(": ")[1];
+
+            // Add to HashMap
+            SymmetricPair<String> simConcept = new SymmetricPair<>(concept1, concept2);
+            rewritingConcept.add(simConcept);
+
+        }
+    }
+
     /**
      * Read the content of the mapping file
      * @return
@@ -314,8 +343,12 @@ public class OntopController {
      * @param owlFileName
      * @return
      */
-    private String buildOntopCommand(String action, String queryFileName, String owlFileName) {
+    private String buildOntopCommand(String action, String queryFileName, String owlFileName, String queryType) {
         String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
+        if (queryType.equals("similarity")) {
+            System.out.println("Similarity search");
+            TMP_MappingFileName = TMP_MappingFileName.replace(".obda","_sim.obda");
+        }
         String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
         String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;
 
@@ -339,14 +372,17 @@ public class OntopController {
      * @param owlFileType
      * @return
      */
-    public String ontopQuery(String sparqlQuery, String owlFileType) {
+    public String ontopQuery(String sparqlQuery, String owlFileType, String queryType) {
         Path ontopCliDir = Paths.get(System.getProperty("user.dir"), "ontop-cli");
         try {
             // Create a temporary SPARQL query file
             File tempQueryFile = createTempFile(ontopCliDir, sparqlQuery, "sparqlQuery", ".txt");
 
+            if(queryType.equals("similarity")) {
+                genMappingSimFile();
+            }
             // Build command with temporary file
-            String command = buildOntopCommand("query", tempQueryFile.getName(), owlFileType);
+            String command = buildOntopCommand("query", tempQueryFile.getName(), owlFileType, queryType);
 
             // Execute command and handle result
             try {
@@ -370,7 +406,10 @@ public class OntopController {
         String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
 
         // Build the command for bootstrapping
-        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, owlFileName);
+        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, owlFileName, "standard");
+
+        // Extract database schema
+        extractDBSchema(baseIRI);
 
         // Execute the command
         executeCommand(command);
@@ -390,5 +429,271 @@ public class OntopController {
             return "Error reading concept names file.";
         }
 
-}
+    }
+
+    ///////////////////////////
+    //////Mapping Methods//////
+    ///////////////////////////
+
+    private void genMappingSimFile() {
+        // get all concept in mapping file into list
+        HashSet<String> conceptInDatabase = extractConceptInMappingFile(baseIRI);
+//        System.out.println(conceptInDatabase.toString());
+        ArrayList<SymmetricPair<String>> swapConcept = filterRewritingConcept(conceptInDatabase);
+        ArrayList<String> textToAppend = genSimMappingValue(swapConcept);
+        addTextEOF(textToAppend);
+    }
+    public ArrayList<SymmetricPair<String>> filterRewritingConcept(HashSet<String> conceptInDatabase) {
+        ArrayList<SymmetricPair<String>> swapConcept = new ArrayList<>();
+        ArrayList<SymmetricPair<String>> generateConcept = new ArrayList<>();
+        int checker = 0;
+        // 0 mean concepts not exist -> ignore this similarity
+        // 1 mean concepts exist one -> generate mapping from database
+        // 2 mean concepts exist two -> swap concept in mapping file
+
+        for (SymmetricPair<String> concept: rewritingConcept) {
+            if(conceptInDatabase.contains(concept.getFirst())) checker++;
+            if(conceptInDatabase.contains(concept.getSecond())) checker++;
+            switch(checker) {
+                case 1:
+                    generateConcept.add(concept);
+                    break;
+                case 2:
+                    swapConcept.add(concept);
+                    break;
+                default:
+                    // code block
+                    break;
+            }
+            checker = 0;
+        }
+        return swapConcept;
+    }
+    public HashMap<String, HashMap<String,String>> extractMappingValueFile(){
+        HashMap<String, HashMap<String,String>> mappingIdMap = new HashMap<>();
+
+        String line;
+        String currentMappingId = null;
+        String currentTarget = null;
+        String currentSource = null;
+
+        try {
+            // Read file
+            String filePath = buildFilePath(mappingFileName);
+            BufferedReader br = new BufferedReader(new FileReader(filePath));
+
+            // Skip header part
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("mappingId")) {
+                    break;
+                }
+            }
+
+            // Save value into hashmap
+            do {
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+
+                String[] value = line.split("\t+");
+                switch (value[0]) {
+                    case "mappingId":
+                        // Save previous mapping if exists
+                        if (currentMappingId != null && currentTarget != null && currentSource != null) {
+                            HashMap<String, String> targetSourceMap = new HashMap<>();
+                            targetSourceMap.put("target", currentTarget);
+                            targetSourceMap.put("source", currentSource);
+                            mappingIdMap.put(currentMappingId, targetSourceMap);
+                        }
+                        // Start new mapping
+                        currentMappingId = value[1].trim();
+                        currentTarget = null;
+                        currentSource = null;
+                        break;
+
+                    case "target":
+                        currentTarget = value[1].trim();
+                        break;
+
+                    case "source":
+                        currentSource = value[1].trim();
+                        break;
+                }
+            } while ((line = br.readLine()) != null);
+            // Save last mapping if exists
+            if (currentMappingId != null && currentTarget != null && currentSource != null) {
+                HashMap<String, String> targetSourceMap = new HashMap<>();
+                targetSourceMap.put("target", currentTarget);
+                targetSourceMap.put("source", currentSource);
+                mappingIdMap.put(currentMappingId, targetSourceMap);
+            }
+
+            br.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return mappingIdMap;
+    }
+
+    public HashSet<String> extractConceptInMappingFile(String baseIRI) {
+        HashSet<String> conceptInMapping = new HashSet<>();
+        HashMap<String, HashMap<String,String>> mappingIdMap = extractMappingValueFile();
+        // assume concepts are after 'a' relationship
+        String keyword = "a";
+
+        // Define the regex pattern to find the value after the keyword
+        String regex = keyword + "\\s*<([^>]+)>";
+
+        // Compile the pattern
+        Pattern pattern = Pattern.compile(regex);
+
+        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
+            HashMap<String, String> innerMap = outerEntry.getValue();
+            // Match the pattern against the input string
+            Matcher matcher = pattern.matcher(innerMap.get("target"));
+
+            // Check if a match is found and print the result
+            if (matcher.find()) {
+                String extractedValue = matcher.group(1);
+
+                // Remove the base IRI from the extracted value
+                if (extractedValue.startsWith(baseIRI)) {
+                    String result = extractedValue.substring(baseIRI.length());
+                    conceptInMapping.add(result);
+                } else {
+                    System.out.println("The extracted value does not start with the base IRI.");
+                }
+            }
+        }
+        return conceptInMapping;
+    }
+
+    public ArrayList<String> genSimMappingValue(ArrayList<SymmetricPair<String>> swapPair) {
+
+        int counter = 1;
+        ArrayList<String> textToAppend = new ArrayList<>();
+        HashMap<String, HashMap<String,String>> mappingIdMap = extractMappingValueFile();
+        makeFullMap(swapPair);
+
+        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
+            HashMap<String, String> innerMap = outerEntry.getValue();
+            for (SymmetricPair<String> concept : swapPair) {
+                if (innerMap.get("target").contains(concept.getFirst())) {
+                    String tempString = innerMap.get("target").replace(concept.getFirst(), concept.getSecond());
+//                    System.out.println(tempString);
+
+                    String simMapping = "mappingId\tMAPPING-SIM-ID" + counter++ + "\n" +
+                            "target\t\t" + tempString + "\n" +
+                            "source\t\t" + innerMap.get("source");
+                    textToAppend.add(simMapping);
+
+                    break;
+                }
+            }
+        }
+        return textToAppend;
+    }
+
+    public void extractDBSchema (String baseIRI) {
+        String filePath = buildFilePath("dbSchema.json");
+        HashMap<String, List<String>> dbSchema = new HashMap<>();
+        HashMap<String, HashMap<String,String>> mappingIdMap = extractMappingValueFile();
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
+                HashMap<String, String> innerMap = outerEntry.getValue();
+                if(innerMap.get("source").contains("*")){
+                    extractTableColumnsInfo(dbSchema, baseIRI, innerMap.get("target"));
+                }
+            }
+
+            objectMapper.writeValue(new File(filePath), dbSchema);
+            System.out.println("JSON file created: dbSchema.json");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void extractTableColumnsInfo (HashMap<String, List<String>> dbSchema, String baseIRI, String input) {
+
+        Pattern pattern = Pattern.compile("<(.*?)>");
+        Matcher matcher = pattern.matcher(input);
+
+        while (matcher.find()) {
+            String fullIRI = matcher.group(1);
+            if (fullIRI.startsWith(baseIRI)) {
+                String relativeIRI = fullIRI.substring(baseIRI.length());
+
+                // Split the relative IRI into main part and hash part if present
+                String[] parts = relativeIRI.split("#");
+                String key = parts[0].split("/")[0];
+                String value = parts.length > 1 ? parts[1] : null;
+
+                if (!dbSchema.containsKey(key)) {
+                    dbSchema.put(key, new ArrayList<>());
+                }
+
+                if (value != null) {
+                    dbSchema.get(key).add(value);
+                }
+
+            }
+        }
+
+    }
+
+    public void addTextEOF(ArrayList<String> textToAppend) {
+        String originalFilePath = buildFilePath(mappingFileName);
+        String newFilePath = originalFilePath.replace(".obda", "_sim.obda");
+
+        try {
+            // Read the content of the original file
+            List<String> lines = Files.readAllLines(Paths.get(originalFilePath));
+
+            // Create the new content
+            StringBuilder newContent = new StringBuilder();
+
+            // Add all lines except the last one
+            for (int i = 0; i < lines.size() - 1; i++) {
+                newContent.append(lines.get(i)).append(System.lineSeparator());
+            }
+            // Append the new text
+            for (String s : textToAppend) {
+                newContent.append(System.lineSeparator()).append(s).append(System.lineSeparator());
+            }
+
+            // Append the last line
+            if (!lines.isEmpty()) {
+                newContent.append(lines.get(lines.size() - 1));
+            }
+
+            // Write the new content to a new file
+            Path newFile = Paths.get(newFilePath);
+            if (Files.exists(newFile)) {
+                Files.delete(newFile);
+                System.out.println("Existing file deleted: " + newFilePath);
+            }
+            Files.write(newFile, newContent.toString().getBytes(), StandardOpenOption.CREATE);
+
+            System.out.println("Text appended above the last line and written to new file successfully.");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void makeFullMap(ArrayList<SymmetricPair<String>> map){
+        ArrayList<SymmetricPair<String>> reversedMap = new ArrayList<>();
+        for (SymmetricPair<String> pair : map) {
+            reversedMap.add(new SymmetricPair<>(pair.getSecond(), pair.getFirst()));
+        }
+        for (SymmetricPair<String> pair : reversedMap) {
+            map.add(new SymmetricPair<>(pair.getFirst(), pair.getSecond()));
+        }
+    }
+
 }

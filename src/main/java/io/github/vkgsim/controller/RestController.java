@@ -66,7 +66,8 @@ public class RestController {
     ) {
         String sparqlQuery = request.get("query");
         String owlFileType = request.get("owlFileType");
-        return ontopController.ontopQuery(String.valueOf(sparqlQuery) , owlFileType);
+        String queryType = request.get("queryType");
+        return ontopController.ontopQuery(String.valueOf(sparqlQuery) , owlFileType, queryType);
     }
 
     // This method is used to generate the mapping file
@@ -110,4 +111,13 @@ public class RestController {
     public String readConceptNameFile() {
         return ontopController.readConceptNameFile();
     }
+
+    @PostMapping("/saveSimResultFile")
+    public void saveSimResultFile(
+            @RequestBody Map<String, String> request
+    ) {
+        String result = request.get("result");
+        ontopController.saveSimResultFile(result);
+    }
+
 }
