@@ -260,6 +260,17 @@ function sendQuery() {
 
   let sparqlQuery = document.getElementById("sparqlQuery").value;
   let owlFileType = document.getElementById("owlFilenameDropdown").value;
+  let checkedValue;
+
+  const standardQueryCheckbox = document.querySelector('#standardQuery');
+  const similarityQueryCheckbox = document.querySelector('#similarityQuery');
+
+  if (standardQueryCheckbox.checked) {
+    checkedValue = standardQueryCheckbox.value;
+
+  } else {
+    checkedValue = similarityQueryCheckbox.value
+  }
   console.log("Sending SPARQL query:", sparqlQuery);
   console.log("OWL File Type:", owlFileType);
   let requestOptions = {
@@ -267,7 +278,7 @@ function sendQuery() {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: sparqlQuery, owlFileType: owlFileType }),
+    body: JSON.stringify({ query: sparqlQuery, owlFileType: owlFileType, queryType: checkedValue }),
   };
 
   // Send the HTTP request
@@ -408,6 +419,7 @@ function filterSimilarity() {
 
             // Append the list item to the concept list
             conceptList.appendChild(listItem);
+            saveSimResultFile(`${concept1},${concept2}`)
           }
         } else {
           console.warn("Invalid line:", line);
@@ -415,6 +427,26 @@ function filterSimilarity() {
       }
     });
   }
+}
+
+function saveSimResultFile(result) {
+
+  fetch('/saveSimResultFile', {
+
+    method: 'POST', // Assuming you want to send a POST request
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({result: result}),
+
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.text();
+  })
+  .catch(error => console.error('Error saving concept names:', error));
 }
 
 function showExplanation(event) {

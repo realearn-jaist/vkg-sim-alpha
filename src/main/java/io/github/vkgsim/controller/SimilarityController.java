@@ -32,7 +32,7 @@ public class SimilarityController {
             SimExplainer simExplainer = new SimExplainer(inputFile);
             List<String> conceptNames = simExplainer.retrieveConceptName();
             System.out.println(" Concept Names: " + conceptNames);
-            simExplainer.setApiKey("YOUR_API_KEY");
+            simExplainer.setApiKey("YOUR API KEY");
             StringBuilder resultBuilder = new StringBuilder();
             for (int i = 0; i < conceptNames.size(); i++) {
                 for (int j = i + 1; j < conceptNames.size(); j++) {
