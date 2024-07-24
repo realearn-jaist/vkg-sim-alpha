@@ -14,12 +14,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.nio.file.StandardOpenOption;
@@ -491,12 +486,14 @@ public class OntopController {
         // get all concept in mapping file into list
         HashSet<String> conceptInDatabase = extractConceptInMappingFile(baseIRI);
         System.out.println(conceptInDatabase.toString());
-        ArrayList<SymmetricPair<String>> swapConcept = filterRewritingConcept(conceptInDatabase);
-        System.out.println(swapConcept);
-        ArrayList<String> textToAppend = genSimMappingValue(swapConcept);
+        List<ArrayList<SymmetricPair<String>>> rewritingValue = filterRewritingConcept(conceptInDatabase);
+//        ArrayList<SymmetricPair<String>> swapConcept = rewritingValue.get(0);
+//        ArrayList<SymmetricPair<String>> generateConcept = rewritingValue.get(1);
+//        System.out.println(swapConcept);
+        ArrayList<String> textToAppend = genSimMappingValue(rewritingValue);
         addTextEOF(textToAppend);
     }
-    public ArrayList<SymmetricPair<String>> filterRewritingConcept(HashSet<String> conceptInDatabase) {
+    public List<ArrayList<SymmetricPair<String>>> filterRewritingConcept(HashSet<String> conceptInDatabase) {
         ArrayList<SymmetricPair<String>> swapConcept = new ArrayList<>();
         ArrayList<SymmetricPair<String>> generateConcept = new ArrayList<>();
         int checker = 0;
@@ -506,9 +503,14 @@ public class OntopController {
 
         for (SymmetricPair<String> concept: rewritingConcept) {
             if(conceptInDatabase.contains(concept.getFirst())) checker++;
-            if(conceptInDatabase.contains(concept.getSecond())) checker++;
+            if(conceptInDatabase.contains(concept.getSecond())) {
+                String temp = concept.getFirst();
+                concept.swap();
+                checker++;
+            }
             switch(checker) {
                 case 1:
+                    concept.swap();
                     generateConcept.add(concept);
                     break;
                 case 2:
@@ -520,7 +522,7 @@ public class OntopController {
             }
             checker = 0;
         }
-        return swapConcept;
+        return Arrays.asList(swapConcept, generateConcept);
     }
     public HashMap<String, HashMap<String,String>> extractMappingValueFile(){
         HashMap<String, HashMap<String,String>> mappingIdMap = new HashMap<>();
@@ -625,24 +627,39 @@ public class OntopController {
         return conceptInMapping;
     }
 
-    public ArrayList<String> genSimMappingValue(ArrayList<SymmetricPair<String>> swapPair) {
-
+    public ArrayList<String> genSimMappingValue(List<ArrayList<SymmetricPair<String>>> rewritingValue) {
+        ArrayList<SymmetricPair<String>> swapConceptPair = rewritingValue.get(0);
+        ArrayList<SymmetricPair<String>> generateConceptPair = rewritingValue.get(1);
         int counter = 1;
         ArrayList<String> textToAppend = new ArrayList<>();
         HashMap<String, HashMap<String,String>> mappingIdMap = extractMappingValueFile();
-        makeFullMap(swapPair);
+        makeFullMap(swapConceptPair);
 
         for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
             HashMap<String, String> innerMap = outerEntry.getValue();
-            for (SymmetricPair<String> concept : swapPair) {
-                if (innerMap.get("target").contains(concept.getFirst())) {
-                    String tempString = innerMap.get("target").replace(concept.getFirst(), concept.getSecond());
-//                    System.out.println(tempString);
+            for (SymmetricPair<String> concepts : swapConceptPair) {
+                if (innerMap.get("target").contains(concepts.getFirst())) {
+                    String targetString = innerMap.get("target").replace(concepts.getFirst(), concepts.getSecond());
 
                     String simMapping = "mappingId\tMAPPING-SIM-ID" + counter++ + "\n" +
-                            "target\t\t" + tempString + "\n" +
+                            "target\t\t" + targetString + "\n" +
                             "source\t\t" + innerMap.get("source");
                     textToAppend.add(simMapping);
+
+                    break;
+                }
+            }
+            for (SymmetricPair<String> concepts : generateConceptPair) {
+                if (innerMap.get("target").contains(concepts.getFirst())) {
+                    /*
+                    not implement
+                    String targetString <-
+                    String sourceString = innerMap.get("target").replace(concepts.getFirst(), concepts.getSecond());
+                    String simMapping = "mappingId\tMAPPING-SIM-ID" + counter++ + "\n" +
+                            "target\t\t" + targetString + "\n" +
+                            "source\t\t" + sourceString;
+                    textToAppend.add(simMapping);
+                    */
 
                     break;
                 }
