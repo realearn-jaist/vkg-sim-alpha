@@ -1,6 +1,8 @@
 package io.github.vkgsim.controller;
 
 import io.github.vkgsim.model.OntopModel;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -86,8 +88,19 @@ public class RestController {
 
     // This method is used to read the similarity file content
     @GetMapping("/readSimilarityFileContent")
-    public String readSimilarityFileContent() {
-        return ontopController.readSimilarityFileContent();
+    public List<Map<String, Object>> readSimilarityFileContent() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        try {
+            JSONArray jsonArray = ontopController.readSimilarityFileContent();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObject = jsonArray.getJSONObject(i);
+                result.add(jsonObject.toMap()); // Convert JSONObject to Map<String, Object>
+            }
+        } catch (Exception e) {
+            // Log the exception and return an empty list or handle the error as needed
+            // logger.error("Error reading similarity file content", e);
+        }
+        return result;
     }
 
     // This method is used to read the concept name file content

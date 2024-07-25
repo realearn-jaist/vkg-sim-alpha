@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.vkgsim.model.OntopModel;
 import io.github.vkgsim.util.SymmetricPair;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.ShortFormProvider;
@@ -265,18 +267,38 @@ public class OntopController {
      * Read the content of similarity file
      * @return
      */
-    public String readSimilarityFileContent() {
-//        String TMP_MappingFileName = buildFilePath(simFileName);
+    public JSONArray readSimilarityFileContent() {
         String TMP_MappingFileName = ontopModel.getSimilarityFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
-            reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
-            return contentBuilder.toString();
+            JSONArray similaritiesArray = new JSONArray();
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Assuming each block of lines pertains to one comparison
+                String[] lines = line.split("\\|");
+                if (lines.length >= 8) {
+                    JSONObject similarityEntry = new JSONObject();
+                    similarityEntry.put("concept1", lines[0].trim());
+                    similarityEntry.put("concept2", lines[1].trim());
+                    similarityEntry.put("similarity", lines[2].trim());
+                    similarityEntry.put("forward_explanation", lines[3].trim());
+                    similarityEntry.put("backward_explanation", lines[4].trim());
+                    similarityEntry.put("summary_explanation", lines[5].trim());
+                    similarityEntry.put("description_tree1", new JSONObject(lines[6].trim()));
+                    similarityEntry.put("description_tree2", new JSONObject(lines[7].trim()));
+
+                    similaritiesArray.put(similarityEntry);
+                }
+            }
+
+            return similaritiesArray;
         } catch (IOException e) {
             System.err.println("Error reading mapping file: " + e.getMessage());
-            return "Error reading mapping file.";
+            throw new Error("Error reading mapping file.");
         }
     }
+
 
     public void saveSimResultFile(String result) {
         System.out.println("result: " + result);
@@ -503,7 +525,6 @@ public class OntopController {
         for (SymmetricPair<String> concept: rewritingConcept) {
             if(conceptInDatabase.contains(concept.getFirst())) checker++;
             if(conceptInDatabase.contains(concept.getSecond())) {
-                String temp = concept.getFirst();
                 concept.swap();
                 checker++;
             }
