@@ -3,6 +3,7 @@ package io.github.vkgsim.model;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -106,4 +107,37 @@ public class OntopModel {
         return owlFileName.substring(0, owlFileName.lastIndexOf('.')) + "_tmp.owl";
     }
 
+    // Method to delete the profile directory or file.
+    public boolean deleteProfile() {
+
+        String filePath = getOwlFileDirFilePath();
+        File fileOrDir = new File(filePath);
+
+        if (fileOrDir.exists()) {
+            deleteRecursively(fileOrDir);
+        } else {
+            System.out.println("File or directory does not exist: " + filePath);
+        }
+
+        propertiesFileName = null;
+        mappingFileName = null; // Name of the mapping file
+        username = null;
+        owlFileName = null;
+        fullPath = null;
+
+        return true;
+    }
+
+    // Helper method to delete files and directories recursively.
+    private boolean deleteRecursively(File fileOrDir) {
+        if (fileOrDir.isDirectory()) {
+            File[] children = fileOrDir.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    deleteRecursively(child);
+                }
+            }
+        }
+        return fileOrDir.delete();
+    }
 }

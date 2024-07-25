@@ -26,7 +26,7 @@ import java.nio.file.StandardOpenOption;
 @Component
 public class OntopController {
 
-    final Set<String> processedProperties = new HashSet<>(); // Set to store processed properties
+    private Set<String> processedProperties = new HashSet<>(); // Set to store processed properties
     private ArrayList<SymmetricPair<String>> rewritingConcept = new ArrayList<>();
 
     private String baseIRI;
@@ -63,6 +63,7 @@ public class OntopController {
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("baseIRI", baseIRI);
+        jsonObject.put("API_KEY", "");
         FileWriter file = new FileWriter(uploadDirPath + "/cache.json");
         file.write(jsonObject.toString());
         file.close();
@@ -122,14 +123,22 @@ public class OntopController {
         ontopModel.setUsername(username);
 
         try {
+            baseIRI = loadCache().get("baseIRI");
+        } catch (IOException e) {}
+
+    }
+
+    public Map<String, String> loadCache() throws IOException {
+        try {
             directoryPathReader(ontopModel.getFilePath());
 
             ObjectMapper mapper = new ObjectMapper();
             File file = new File(ontopModel.getFilePath("cache.json"));
             Map<String, String> map = mapper.readValue(file, Map.class);
-            baseIRI = map.get("baseIRI");
-        } catch (IOException e) {}
-
+            return map;
+        } catch (IOException e) {
+            throw new IOException();
+        }
     }
 
     private void addFileNameIfExists(List<String> fileNames, String fileName) {
@@ -292,7 +301,7 @@ public class OntopController {
      * Read the content of similarity file
      * @return
      */
-    public JSONArray readSimilarityFileContent() {
+    public JSONArray readSimilarityFileContent() throws IOException {
         String TMP_MappingFileName = ontopModel.getSimilarityFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
@@ -319,27 +328,31 @@ public class OntopController {
 
             return similaritiesArray;
         } catch (IOException e) {
-            System.err.println("Error reading mapping file: " + e.getMessage());
-            throw new Error("Error reading mapping file.");
+            System.err.println("Error reading concept Similarity file: " + e.getMessage());
+            throw new IOException("Error reading concept Similarity file.", e);
         }
     }
 
     public void saveSimResultFile(String result) {
         System.out.println("result: " + result);
-        rewritingConcept.clear();
-        String[] lines = result.split("\n");
-        for (String line : lines) {
-            // Split the line into parts
-            String[] parts = line.split(",");
+        try {
+            rewritingConcept.clear();
+            String[] lines = result.split("\n");
+            for (String line : lines) {
+                // Split the line into parts
+                String[] parts = line.split(",");
 
-            // Extract Concept 1, Concept 2
-            String concept1 = parts[0];
-            String concept2 = parts[1];
+                // Extract Concept 1, Concept 2
+                String concept1 = parts[0];
+                String concept2 = parts[1];
 
-            // Add to HashMap
-            SymmetricPair<String> simConcept = new SymmetricPair<>(concept1, concept2);
-            rewritingConcept.add(simConcept);
+                // Add to HashMap
+                SymmetricPair<String> simConcept = new SymmetricPair<>(concept1, concept2);
+                rewritingConcept.add(simConcept);
 
+            }
+        } catch (Exception e) {
+            throw new IndexOutOfBoundsException();
         }
 //        System.out.println("rewritingConcept: " + rewritingConcept);
     }
@@ -348,16 +361,16 @@ public class OntopController {
      * Read the content of the mapping file
      * @return
      */
-    public String readMappingFileContent() {
-//        String TMP_MappingFileName = buildFilePath(mappingFileName);
+    public String readMappingFileContent() throws IOException {
         String TMP_MappingFileName = ontopModel.getMappingFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
             reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
             return contentBuilder.toString();
         } catch (IOException e) {
+            // Log the error and rethrow the exception with additional context
             System.err.println("Error reading mapping file: " + e.getMessage());
-            return "Error reading mapping file.";
+            throw new IOException("Failed to read mapping file at " + TMP_MappingFileName, e);
         }
     }
 
@@ -474,7 +487,7 @@ public class OntopController {
      * @param owlFileType
      * @return
      */
-    public String ontopQuery(String sparqlQuery, String owlFileType, String queryType) {
+    public String ontopQuery(String sparqlQuery, String owlFileType, String queryType) throws IOException {
 //        Path ontopCliDir = Paths.get(System.getProperty("user.dir"), OntopDir);
         Path ontopCliDir = ontopModel.getPath();
         try {
@@ -490,12 +503,18 @@ public class OntopController {
             // Execute command and handle result
             try {
                 return executeCommand(command);
-            } finally {
+            }
+            catch (Exception e) {
+                // Ensure the temporary file is deleted
+                deleteTempFile(tempQueryFile);
+                throw e;
+            }
+            finally {
                 // Ensure the temporary file is deleted
                 deleteTempFile(tempQueryFile);
             }
         } catch (IOException e) {
-            return "Error executing SPARQL query: " + e.getMessage();
+            throw e;
         }
     }
 
@@ -509,7 +528,7 @@ public class OntopController {
         try {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("baseIRI", baseIRI);
-            FileWriter file = new FileWriter(ontopModel.getBaseUploadDir() + "/cache.json");
+            FileWriter file = new FileWriter(ontopModel.getUploadDirPath() + "/cache.json");
             file.write(jsonObject.toString());
             file.close();
         } catch (IOException e) {
@@ -529,7 +548,11 @@ public class OntopController {
         extractDBSchema(baseIRI);
 
         // Return the content of the mapping file
-        return readMappingFileContent();
+        try {
+            return readMappingFileContent();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String readConceptNameFile() {
@@ -834,4 +857,10 @@ public class OntopController {
         }
     }
 
+    public void deleteProfile() {
+        processedProperties = new HashSet<>(); // Set to store processed properties
+        rewritingConcept = new ArrayList<>();
+        baseIRI = null;
+        ontopModel.deleteProfile();
+    }
 }

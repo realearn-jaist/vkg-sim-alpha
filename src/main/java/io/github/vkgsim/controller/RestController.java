@@ -1,10 +1,14 @@
 package io.github.vkgsim.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.vkgsim.model.OntopModel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +32,7 @@ public class RestController {
     @GetMapping("/createUserFolder")
     public String createUserFolder(@RequestParam String username) throws IOException {
         ontopController.setUsername(username);
+        similarityController.loadAPI_KEY();
         return ontopController.createUserFolder();
     }
 
@@ -37,11 +42,12 @@ public class RestController {
             @RequestParam("owlFile") MultipartFile owlFile,
             @RequestParam("mappingFile") MultipartFile mappingFile,
             @RequestParam("propertiesFile") MultipartFile propertiesFile,
-            @RequestParam("driverFile") MultipartFile driverFile
+            @RequestParam("driverFile") MultipartFile driverFile,
+            @RequestParam("api_key") String api_key
     ) {
         try {
             ontopController.initial(owlFile, mappingFile, propertiesFile, driverFile);
-
+            similarityController.setAPI_KEY(api_key);
         } catch (IOException e) {
             e.printStackTrace();
             return "Error saving uploaded files.";
@@ -57,21 +63,36 @@ public class RestController {
         return ontopController.retrieveConceptName();
     }
 
+    @DeleteMapping("/deleteProfile")
+    public ResponseEntity<String> deleteProfile() {
+        ontopController.deleteProfile();
+        similarityController.deleteProfile();
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     // This method is used to send SPAQRL queries to the Ontop CLI
     @PostMapping("/sendQuery")
-    public String sendQuery(
+    public ResponseEntity<String> sendQuery(
             @RequestBody Map<String, String> request
     ) {
         String sparqlQuery = request.get("query");
         String owlFileType = request.get("owlFileType");
         String queryType = request.get("queryType");
-        return ontopController.ontopQuery(String.valueOf(sparqlQuery) , owlFileType, queryType);
+        try {
+            return new ResponseEntity<>(ontopController.ontopQuery(String.valueOf(sparqlQuery) , owlFileType, queryType), HttpStatus.OK);
+        } catch (IOException e) {
+            return new ResponseEntity<>("Error executing SPARQL query: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // This method is used to generate the mapping file
     @GetMapping("/generateMapping")
-    public String generateMapping(@RequestParam String baseIRI) {
-        return ontopController.ontopBootstrap(baseIRI);
+    public ResponseEntity<String> generateMapping(@RequestParam String baseIRI) {
+        try {
+            return new ResponseEntity<>(ontopController.ontopBootstrap(baseIRI), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     // This method is used to save the mapping file
@@ -85,25 +106,30 @@ public class RestController {
 
     // This method is used to read the mapping file content
     @GetMapping("/readMappingFileContent")
-    public String readMappingFileContent() {
-        return ontopController.readMappingFileContent();
+    public ResponseEntity<String> readMappingFileContent() {
+        try {
+            return new ResponseEntity<>(ontopController.readMappingFileContent(), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
     }
 
     // This method is used to read the similarity file content
     @GetMapping("/readSimilarityFileContent")
-    public List<Map<String, Object>> readSimilarityFileContent() {
+    public ResponseEntity<List<Map<String, Object>>> readSimilarityFileContent() {
         List<Map<String, Object>> result = new ArrayList<>();
         try {
             JSONArray jsonArray = ontopController.readSimilarityFileContent();
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
-                result.add(jsonObject.toMap()); // Convert JSONObject to Map<String, Object>
+                result.add(jsonObject.toMap());
             }
+            return new ResponseEntity<>(result, HttpStatus.OK);
         } catch (Exception e) {
-            // Log the exception and return an empty list or handle the error as needed
-            // logger.error("Error reading similarity file content", e);
+            // Return an error response with a 500 Internal Server Error status
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        return result;
     }
 
     // This method is used to read the concept name file content
@@ -125,11 +151,17 @@ public class RestController {
     }
 
     @PostMapping("/saveSimResultFile")
-    public void saveSimResultFile(
+    public ResponseEntity<HttpStatus> saveSimResultFile(
             @RequestBody Map<String, String> request
     ) {
         String result = request.get("result");
-        ontopController.saveSimResultFile(result);
+        if (!result.isEmpty()) {
+            ontopController.saveSimResultFile(result);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
     }
 
 }
