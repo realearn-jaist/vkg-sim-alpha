@@ -5,6 +5,10 @@
 
 !src/main/java/io/github/vkgsim/controller/**
 
+!src/main/java/io/github/vkgsim/model/**
+
+!src/main/java/io/github/vkgsim/util/**
+
 !src/main/java/io/github/vkgsim/Application.java
 
 !src/main/resources/**
@@ -18,6 +22,8 @@ src/test/resources/ontop-cli/**
 !pom.xml
 
 !libs/library.jar
+
+
 
 !ontop-cli/**
 ontop-cli/logback.xml
