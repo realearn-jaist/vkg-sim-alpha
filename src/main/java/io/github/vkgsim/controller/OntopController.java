@@ -34,13 +34,25 @@ public class OntopController {
     @Autowired
     private OntopModel ontopModel;
 
-    public void initial(MultipartFile owlFile, MultipartFile mappingFile, MultipartFile propertiesFile, MultipartFile driverFile) throws IOException {
+    public void initial(MultipartFile owlFile, MultipartFile mappingFile, MultipartFile propertiesFile, MultipartFile driverFile) throws IOException, OWLOntologyCreationException {
 
         // set owl file name
         String owlFileName = owlFile.getOriginalFilename();
+        owlFileName = "ontology." + getFileExtension(owlFileName);
+
+        //extract baseIRI here
+        if (getFileExtension(owlFileName).equals("owl")) {
+            baseIRI = extractBaseIRI(owlFile);
+        } else {
+            baseIRI = "http://";
+        }
+        System.out.println(baseIRI);
+
+
         String mappingFileName = mappingFile.getOriginalFilename();
         String propertiesFileName = propertiesFile.getOriginalFilename();
         String driverFileName = driverFile.getOriginalFilename();
+
         ontopModel.setOwlFile(owlFileName);
         ontopModel.setMappingFileName(mappingFileName);
         ontopModel.setPropertiesFileName(propertiesFileName);
@@ -48,6 +60,12 @@ public class OntopController {
         // create dir for upload file
         Path uploadDirPath = ontopModel.getUploadDirPath();
         Files.createDirectories(uploadDirPath);
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("baseIRI", baseIRI);
+        FileWriter file = new FileWriter(uploadDirPath + "/cache.json");
+        file.write(jsonObject.toString());
+        file.close();
 
         // save owl
         File savedFileOwl = new File(uploadDirPath.toFile(), owlFileName);
@@ -72,6 +90,24 @@ public class OntopController {
 
     }
 
+    private String extractBaseIRI(MultipartFile owlFile) throws OWLOntologyCreationException, IOException {
+        OWLOntologyManager owlOntologyManager = OWLManager.createOWLOntologyManager();
+
+        File convFile = new File(owlFile.getOriginalFilename());
+        convFile.createNewFile();
+        try (FileOutputStream fos = new FileOutputStream(convFile)) {
+            fos.write(owlFile.getBytes());
+        }
+
+        IRI documentIRI = IRI.create(convFile);
+        OWLOntology owlOntology = owlOntologyManager.loadOntologyFromOntologyDocument(documentIRI);
+        String result = owlOntology
+                .getOntologyID()
+                .getDefaultDocumentIRI()
+                .toQuotedString();
+        return result.substring(1, result.length()-1);
+    }
+
     ///////////////////////////
     ////Setters and Getters////
     ///////////////////////////
@@ -82,9 +118,18 @@ public class OntopController {
         return ontopModel;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(String username) throws IOException {
         ontopModel.setUsername(username);
-        directoryPathReader(ontopModel.getFilePath());
+
+        try {
+            directoryPathReader(ontopModel.getFilePath());
+
+            ObjectMapper mapper = new ObjectMapper();
+            File file = new File(ontopModel.getFilePath("cache.json"));
+            Map<String, String> map = mapper.readValue(file, Map.class);
+            baseIRI = map.get("baseIRI");
+        } catch (IOException e) {}
+
     }
 
     private void addFileNameIfExists(List<String> fileNames, String fileName) {
@@ -98,7 +143,6 @@ public class OntopController {
         ArrayList<String> fileNames = new ArrayList<>();
         String owlFileName = ontopModel.getOwlFileName();
         addFileNameIfExists(fileNames, owlFileName);
-        System.out.println(owlFileName);
         addFileNameIfExists(fileNames, ontopModel.getBootstrapFileName(owlFileName));
         return fileNames;
     }
@@ -114,6 +158,12 @@ public class OntopController {
             File[] files = directory.listFiles();
 
             if (files != null && files.length > 0) {
+                if (Arrays.stream(files).anyMatch(file -> file.getName().equals("ontology.owl"))) {
+                    ontopModel.setOwlFile("ontology.owl");
+                } else {
+                    ontopModel.setOwlFile("ontology.krss");
+                }
+
                 for (File file : files) {
                     // Check if the file is a file (not a directory)
                     if (file.isFile()) {
@@ -124,12 +174,6 @@ public class OntopController {
                         String fileExtension = getFileExtension(fileName);
 
                         switch(fileExtension) {
-                            case "owl":
-                                ontopModel.setOwlFile(fileName);
-                                break;
-                            case "krss":
-                                ontopModel.setOwlFile(fileName);
-                                break;
                             case "obda":
                                 ontopModel.setMappingFileName(fileName);
                                 break;
@@ -182,7 +226,6 @@ public class OntopController {
      * @return
      */
     public String saveMapping(String mapping) {
-//        String TMP_MappingFileName = buildFilePath(mappingFileName);
         String TMP_MappingFileName = ontopModel.getMappingFilePath();
         try (FileWriter writer = new FileWriter(TMP_MappingFileName)) {
             writer.write(mapping);
@@ -192,42 +235,6 @@ public class OntopController {
         }
         return mapping;
     }
-
-    /**
-     * Save the uploaded file
-     * @param file
-     * @param filename
-     * @return
-     * @throws IOException
-     */
-    public File saveUploadedFile(MultipartFile file, String filename) throws IOException {
-//        Path uploadDirPath = Paths.get(OntopDir, BASE_UPLOAD_DIR, username);
-        Path uploadDirPath = ontopModel.getPath(ontopModel.getBaseUploadDir() , ontopModel.getUsername());
-        Files.createDirectories(uploadDirPath);
-        File savedFile = new File(uploadDirPath.toFile(), filename);
-        file.transferTo(savedFile.toPath());
-        System.out.println("File saved: " + savedFile.getAbsolutePath());
-        return savedFile;
-    }
-
-    /**
-     * Save the uploaded file with a specific folder that is not the user folder
-     * @param file
-     * @param filename
-     * @param type
-     * @return
-     * @throws IOException
-     */
-    public File saveUploadedFile(MultipartFile file, String filename, String type) throws IOException {
-//        Path uploadDirPath = Paths.get(OntopDir, "jdbc");
-        Path uploadDirPath = ontopModel.getPath("jdbc");
-        Files.createDirectories(uploadDirPath);
-        File savedFile = new File(uploadDirPath.toFile(), filename);
-        file.transferTo(savedFile.toPath());
-        System.out.println("File saved: " + savedFile.getAbsolutePath());
-        return savedFile;
-    }
-
 
     /**
      * Retrieve object properties for a given OWL class
@@ -499,6 +506,15 @@ public class OntopController {
      */
     public String ontopBootstrap(String baseIRI) {
         this.baseIRI = baseIRI;
+        try {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("baseIRI", baseIRI);
+            FileWriter file = new FileWriter(ontopModel.getBaseUploadDir() + "/cache.json");
+            file.write(jsonObject.toString());
+            file.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         // Update the owlFileName to include "_tmp" before the extension
 //        String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
         String owlFileNameBootstrap = ontopModel.getBootstrapFileName(ontopModel.getOwlFileName());
@@ -517,7 +533,6 @@ public class OntopController {
     }
 
     public String readConceptNameFile() {
-//        String TMP_ConceptFileName = buildFilePath(conceptFileName);
         String TMP_ConceptFileName = ontopModel.getConceptNamesFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_ConceptFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
@@ -720,7 +735,6 @@ public class OntopController {
     }
 
     public void extractDBSchema (String baseIRI) {
-//        String filePath = buildFilePath("dbSchema.json");
         String filePath = ontopModel.getDBSchemaFilePath();
         HashMap<String, List<String>> dbSchema = new HashMap<>();
         HashMap<String, HashMap<String,String>> mappingIdMap = extractMappingValueFile();

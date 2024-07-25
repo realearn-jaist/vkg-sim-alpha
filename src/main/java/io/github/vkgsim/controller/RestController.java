@@ -3,6 +3,7 @@ package io.github.vkgsim.controller;
 import io.github.vkgsim.model.OntopModel;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,7 +26,7 @@ public class RestController {
 
     // This method is used to create a folder for the user
     @GetMapping("/createUserFolder")
-    public String createUserFolder(@RequestParam String username) {
+    public String createUserFolder(@RequestParam String username) throws IOException {
         ontopController.setUsername(username);
         return ontopController.createUserFolder();
     }
@@ -44,6 +45,8 @@ public class RestController {
         } catch (IOException e) {
             e.printStackTrace();
             return "Error saving uploaded files.";
+        } catch (OWLOntologyCreationException e) {
+            throw new RuntimeException(e);
         }
         return "Files uploaded successfully.";
     }
