@@ -1,5 +1,6 @@
 package io.github.vkgsim.controller;
 
+import io.github.vkgsim.model.OntopModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +25,7 @@ public class RestController {
     @GetMapping("/createUserFolder")
     public String createUserFolder(@RequestParam String username) {
         ontopController.setUsername(username);
-        return ontopController.createUserFolder(username);
+        return ontopController.createUserFolder();
     }
 
     // This method is used to upload the OWL, properties, and driver files
@@ -35,15 +36,8 @@ public class RestController {
             @RequestParam("propertiesFile") MultipartFile propertiesFile,
             @RequestParam("driverFile") MultipartFile driverFile
     ) {
-        ontopController.setOwlFileName(owlFile.getOriginalFilename());
-        ontopController.setMappingFileName(mappingFile.getOriginalFilename());
-        ontopController.setPropertiesFileName(propertiesFile.getOriginalFilename());
-        ontopController.setDriverFileName(driverFile.getOriginalFilename());
         try {
-            File owl = ontopController.saveUploadedFile(owlFile, owlFile.getOriginalFilename());
-            File mapping = ontopController.saveUploadedFile(mappingFile, mappingFile.getOriginalFilename());
-            File properties = ontopController.saveUploadedFile(propertiesFile, propertiesFile.getOriginalFilename());
-            File driver = ontopController.saveUploadedFile(driverFile, driverFile.getOriginalFilename(), "driver");
+            ontopController.initial(owlFile, mappingFile, propertiesFile, driverFile);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -55,8 +49,7 @@ public class RestController {
     // This method is used to retrieve the concept names from the OWL file
     @GetMapping("/findAllConceptNames")
     public String findAllConceptNames() {
-        String owlFileName = "ontop-cli/" + ontopController.getBaseUploadDir() + ontopController.getUsername() + "/" + ontopController.getOwlFileName();
-        return ontopController.retrieveConceptName(new File(owlFileName)).toString();
+        return ontopController.retrieveConceptName().toString();
     }
 
     // This method is used to send SPAQRL queries to the Ontop CLI

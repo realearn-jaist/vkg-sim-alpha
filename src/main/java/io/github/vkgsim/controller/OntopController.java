@@ -2,11 +2,13 @@ package io.github.vkgsim.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.github.vkgsim.model.OntopModel;
 import io.github.vkgsim.util.SymmetricPair;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.ShortFormProvider;
 import org.semanticweb.owlapi.util.SimpleShortFormProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,120 +24,61 @@ import java.nio.file.StandardOpenOption;
 @Component
 public class OntopController {
 
-    private static String OntopDir = "ontop-cli/";
-    private static String BASE_UPLOAD_DIR = "inputFiles/"; // Directory to store uploaded files
     final Set<String> processedProperties = new HashSet<>(); // Set to store processed properties
-
-    private String username; // Username of the user
-    private String mappingFileName; // Name of the mapping file
-    private String owlFileName; // Name of the OWL file
-    private String propertiesFileName; // Name of the properties file
-    private String driverFileName; // Name of the driver file
-    private String simFileName = "similarity.txt"; // Name of the similarity file
-    private String conceptFileName = "conceptNames.txt"; // Name of the concept file
-    private String baseIRI = "http://";
     private ArrayList<SymmetricPair<String>> rewritingConcept = new ArrayList<>();
-    private ProcessBuilder processBuilder; // Process builder to execute commands
+
+    private String baseIRI;
+
+    @Autowired
+    private OntopModel ontopModel;
+
+    public void initial(MultipartFile owlFile, MultipartFile mappingFile, MultipartFile propertiesFile, MultipartFile driverFile) throws IOException {
+
+        // set owl file name
+        String owlFileName = owlFile.getOriginalFilename();
+        ontopModel.setOwlFile(owlFileName);
+
+        Path uploadDirPath = ontopModel.getUploadDirPath();
+        Files.createDirectories(uploadDirPath);
+
+        // save owl
+        File savedFileOwl = new File(uploadDirPath.toFile(), owlFileName);
+        owlFile.transferTo(savedFileOwl.toPath());
+
+        // save mapping
+        File savedFileMapping = new File(uploadDirPath.toFile(), "mapping.obda");
+        mappingFile.transferTo(savedFileMapping.toPath());
+
+        // save properties
+        File savedFilePropertiesFile = new File(uploadDirPath.toFile(), "properties.properties");
+        propertiesFile.transferTo(savedFilePropertiesFile.toPath());
+
+        // save driver
+        File savedFileDriverFile = new File(uploadDirPath.toFile(), driverFile.getOriginalFilename());
+        driverFile.transferTo(savedFileDriverFile.toPath());
+
+    }
 
     ///////////////////////////
     ////Setters and Getters////
     ///////////////////////////
+
     // Getter and Setter for owlFileName
-    public String getOwlFileName() {
-        return owlFileName;
+
+    public OntopModel getontopModel() {
+        return ontopModel;
     }
 
-    public void setOwlFileName(String owlFileName) {
-        this.owlFileName = owlFileName;
-    }
-
-    // Getter and Setter for simFileName
-    public String getSimFileName() {
-        return simFileName;
-    }
-
-    public void setSimFileName(String simFileName) {
-        this.simFileName = simFileName;
-    }
-
-    // Getter and Setter for conceptFileName
-    public String getConceptFileName() {
-        return conceptFileName;
-    }
-
-    public void setConceptFileName(String conceptFileName) {
-        this.conceptFileName = conceptFileName;
-    }
-
-    // Getter and Setter for propertiesFileName
-    public String getPropertiesFileName() {
-        return propertiesFileName;
-    }
-
-    public void setPropertiesFileName(String propertiesFileName) {
-        this.propertiesFileName = propertiesFileName;
-    }
-
-    // Getter and Setter for driverFileName
-    public String getDriverFileName() {
-        return driverFileName;
-    }
-
-    public void setDriverFileName(String driverFileName) {
-        this.driverFileName = driverFileName;
-    }
-
-    // Getter and Setter for mappingFileName
-    public String getMappingFileName() {
-        return mappingFileName;
-    }
-
-    public void setMappingFileName(String mappingFileName) {
-        this.mappingFileName = mappingFileName;
-    }
-
-    // Getter and Setter for username
-    public String getUsername() {
-        return username;
-    }
 
     public void setUsername(String username) {
-        this.username = username;
+        ontopModel.setUsername(username);
+        System.out.println("ontopModel.getFilePath(): " + ontopModel.getFilePath());
+        directoryPathReader(ontopModel.getFilePath());
     }
 
-    // Getter and Setter for OntopDir
-    public String getOntopDir() {
-        return OntopDir;
-    }
-
-    public void setOntopDir(String ontopDir) {
-        OntopDir = ontopDir;
-    }
-
-    // Getter and Setter for BASE_UPLOAD_DIR
-    public String getBaseUploadDir() {
-        return BASE_UPLOAD_DIR;
-    }
-
-    public void setBaseUploadDir(String baseUploadDir) {
-        BASE_UPLOAD_DIR = baseUploadDir;
-    }
-
-    // Utility Methods
-    public String buildFilePath(String fileName) {
-        return OntopDir + BASE_UPLOAD_DIR + getUsername() + "/" + fileName;
-    }
-
-    public String getBootstrapFileName() {
-        return this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl";
-    }
-
-    public void setProcessBuilder(ProcessBuilder mockProcessBuilder) {
-        this.processBuilder = mockProcessBuilder;
-    }
 
     private void addFileNameIfExists(List<String> fileNames, String fileName) {
-        Path filePath = Paths.get(buildFilePath(fileName));
+        Path filePath = Paths.get(ontopModel.getFilePath(fileName));
         if (Files.exists(filePath)) {
             fileNames.add(filePath.getFileName().toString());
         }
@@ -143,9 +86,53 @@ public class OntopController {
 
     public ArrayList<String> getOWLFileNameWithBoostrap() {
         ArrayList<String> fileNames = new ArrayList<>();
-        addFileNameIfExists(fileNames, this.owlFileName);
-        addFileNameIfExists(fileNames, getBootstrapFileName());
+        String owlFileName = ontopModel.getOwlFileName();
+        addFileNameIfExists(fileNames, owlFileName);
+        addFileNameIfExists(fileNames, ontopModel.getBootstrapFileName(owlFileName));
         return fileNames;
+    }
+
+    private void directoryPathReader(String directoryPath) {
+
+        // Create a File object for the directory
+        File directory = new File(directoryPath);
+
+        // Check if the directory exists and is indeed a directory
+        if (directory.exists() && directory.isDirectory()) {
+            // List all files in the directory
+            File[] files = directory.listFiles();
+
+            if (files != null && files.length > 0) {
+                for (File file : files) {
+                    // Check if the file is a file (not a directory)
+                    if (file.isFile()) {
+                        // Get the file name
+                        String fileName = file.getName();
+
+                        // Get the file extension
+                        String fileExtension = getFileExtension(fileName);
+
+                        // Print the file name and its extension
+                        System.out.println("File: " + fileName + " | Extension: " + fileExtension);
+                        if(fileExtension.equals("owl") | fileExtension.equals("krss")) {
+                            ontopModel.setOwlFile(fileName);
+                        }
+                    }
+                }
+            } else {
+                System.out.println("The directory is empty.");
+            }
+        } else {
+            System.out.println("The specified path is not a directory or does not exist.");
+        }
+    }
+
+    private String getFileExtension(String fileName) {
+        if (fileName.lastIndexOf(".") != -1 && fileName.lastIndexOf(".") != 0) {
+            return fileName.substring(fileName.lastIndexOf(".") + 1);
+        } else {
+            return ""; // No extension
+        }
     }
 
     ///////////////////////////
@@ -175,7 +162,8 @@ public class OntopController {
      * @return
      */
     public String saveMapping(String mapping) {
-        String TMP_MappingFileName = buildFilePath(mappingFileName);
+//        String TMP_MappingFileName = buildFilePath(mappingFileName);
+        String TMP_MappingFileName = ontopModel.getMappingFilePath();
         try (FileWriter writer = new FileWriter(TMP_MappingFileName)) {
             writer.write(mapping);
         } catch (IOException e) {
@@ -193,7 +181,8 @@ public class OntopController {
      * @throws IOException
      */
     public File saveUploadedFile(MultipartFile file, String filename) throws IOException {
-        Path uploadDirPath = Paths.get(OntopDir, BASE_UPLOAD_DIR, username);
+//        Path uploadDirPath = Paths.get(OntopDir, BASE_UPLOAD_DIR, username);
+        Path uploadDirPath = ontopModel.getPath(ontopModel.getBaseUploadDir() , ontopModel.getUsername());
         Files.createDirectories(uploadDirPath);
         File savedFile = new File(uploadDirPath.toFile(), filename);
         file.transferTo(savedFile.toPath());
@@ -210,7 +199,8 @@ public class OntopController {
      * @throws IOException
      */
     public File saveUploadedFile(MultipartFile file, String filename, String type) throws IOException {
-        Path uploadDirPath = Paths.get(OntopDir, "jdbc");
+//        Path uploadDirPath = Paths.get(OntopDir, "jdbc");
+        Path uploadDirPath = ontopModel.getPath("jdbc");
         Files.createDirectories(uploadDirPath);
         File savedFile = new File(uploadDirPath.toFile(), filename);
         file.transferTo(savedFile.toPath());
@@ -239,10 +229,11 @@ public class OntopController {
 
     /**
      * Retrieve concept names from the OWL file
-     * @param owlFile
      * @return
      */
-    public List<String> retrieveConceptName(File owlFile) {
+    public List<String> retrieveConceptName() {
+        String owlFilePath = ontopModel.getOwlFileDirFilePath();
+        File owlFile = new File(owlFilePath);
         List<String> conceptNames = new ArrayList<>();
         OWLOntology ontology = prepareOWLFile(owlFile);
         ShortFormProvider shortFormProvider = new SimpleShortFormProvider();
@@ -257,7 +248,8 @@ public class OntopController {
             }
         }
         // save all concept names to a file
-        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+//        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+        String TMP_ConceptFileName = ontopModel.getConceptNamesFilePath();
         try (FileWriter writer = new FileWriter(TMP_ConceptFileName)) {
             for (String conceptName : conceptNames) {
                 writer.write(conceptName + "\n");
@@ -274,7 +266,8 @@ public class OntopController {
      * @return
      */
     public String readSimilarityFileContent() {
-        String TMP_MappingFileName = buildFilePath(simFileName);
+//        String TMP_MappingFileName = buildFilePath(simFileName);
+        String TMP_MappingFileName = ontopModel.getSimilarityFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
             reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
@@ -302,7 +295,7 @@ public class OntopController {
             rewritingConcept.add(simConcept);
 
         }
-        System.out.println("rewritingConcept: " + rewritingConcept);
+//        System.out.println("rewritingConcept: " + rewritingConcept);
     }
 
     /**
@@ -310,7 +303,8 @@ public class OntopController {
      * @return
      */
     public String readMappingFileContent() {
-        String TMP_MappingFileName = buildFilePath(mappingFileName);
+//        String TMP_MappingFileName = buildFilePath(mappingFileName);
+        String TMP_MappingFileName = ontopModel.getMappingFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
             reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
@@ -323,11 +317,10 @@ public class OntopController {
 
     /**
      * Create a user folder
-     * @param username
      * @return
      */
-    public String createUserFolder(String username) {
-        Path userFolder = Paths.get(OntopDir, "inputFiles", username);
+    public String createUserFolder() {
+        Path userFolder = ontopModel.getPath("inputFiles", ontopModel.getUsername());
         try {
             Files.createDirectories(userFolder);
             return userFolder.toString();
@@ -391,13 +384,16 @@ public class OntopController {
      * @return
      */
     private String buildOntopCommand(String action, String queryFileName, String owlFileName, String queryType) {
-        String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
+//        String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
+        String TMP_MappingFileName = ontopModel.getMappingFilePath().replace("\\","/");
         if (queryType.equals("similarity")) {
             System.out.println("Similarity search");
             TMP_MappingFileName = TMP_MappingFileName.replace(".obda","_sim.obda");
         }
-        String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
-        String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;
+//        String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
+        String TMP_OWLFileName = ontopModel.getOwlFileDirFilePath().replace("\\","/");
+//        String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;
+        String TMP_PropertiesFileName = ontopModel.getPropertiesFilePath().replace("\\","/");
 
         return String.format("ontop %s -m %s -t %s -p %s %s", action, TMP_MappingFileName, TMP_OWLFileName, TMP_PropertiesFileName,
                 queryFileName != null ? "-q " + queryFileName : "");
@@ -420,7 +416,8 @@ public class OntopController {
      * @return
      */
     public String ontopQuery(String sparqlQuery, String owlFileType, String queryType) {
-        Path ontopCliDir = Paths.get(System.getProperty("user.dir"), OntopDir);
+//        Path ontopCliDir = Paths.get(System.getProperty("user.dir"), OntopDir);
+        Path ontopCliDir = ontopModel.getPath();
         try {
             // Create a temporary SPARQL query file
             File tempQueryFile = createTempFile(ontopCliDir, sparqlQuery, "sparqlQuery", ".txt");
@@ -449,24 +446,26 @@ public class OntopController {
      * @return
      */
     public String ontopBootstrap(String baseIRI) {
+        this.baseIRI = baseIRI;
         // Update the owlFileName to include "_tmp" before the extension
-        String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
-
+//        String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
+        String owlFileNameBootstrap = ontopModel.getBootstrapFileName(ontopModel.getOwlFileName());
         // Build the command for bootstrapping
-        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, owlFileName, "standard");
-
-        // Extract database schema
-        extractDBSchema(baseIRI);
+        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, owlFileNameBootstrap, "standard");
 
         // Execute the command
         executeCommand(command);
+
+        // Extract database schema
+        extractDBSchema(baseIRI);
 
         // Return the content of the mapping file
         return readMappingFileContent();
     }
 
     public String readConceptNameFile() {
-        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+//        String TMP_ConceptFileName = buildFilePath(conceptFileName);
+        String TMP_ConceptFileName = ontopModel.getConceptNamesFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_ConceptFileName))) {
             StringBuilder contentBuilder = new StringBuilder();
             reader.lines().forEach(line -> contentBuilder.append(line).append("\n"));
@@ -534,7 +533,8 @@ public class OntopController {
 
         try {
             // Read file
-            String filePath = buildFilePath(mappingFileName);
+//            String filePath = buildFilePath(mappingFileName);
+            String filePath = ontopModel.getMappingFilePath();
             BufferedReader br = new BufferedReader(new FileReader(filePath));
 
             // Skip header part
@@ -669,7 +669,8 @@ public class OntopController {
     }
 
     public void extractDBSchema (String baseIRI) {
-        String filePath = buildFilePath("dbSchema.json");
+//        String filePath = buildFilePath("dbSchema.json");
+        String filePath = ontopModel.getDBSchemaFilePath();
         HashMap<String, List<String>> dbSchema = new HashMap<>();
         HashMap<String, HashMap<String,String>> mappingIdMap = extractMappingValueFile();
         ObjectMapper objectMapper = new ObjectMapper();
@@ -717,7 +718,8 @@ public class OntopController {
     }
 
     public void addTextEOF(ArrayList<String> textToAppend) {
-        String originalFilePath = buildFilePath(mappingFileName);
+//        String originalFilePath = buildFilePath(mappingFileName);
+        String originalFilePath = ontopModel.getMappingFilePath();
         String newFilePath = originalFilePath.replace(".obda", "_sim.obda");
 
         try {

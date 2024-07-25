@@ -28,7 +28,7 @@ public class SimilarityController {
      */
     public String readAllConceptWithThreshold() {
         try {
-            String inputFile = ontopController.buildFilePath("");
+            String inputFile = ontopController.getontopModel().getFilePath();
             SimExplainer simExplainer = new SimExplainer(inputFile);
             List<String> conceptNames = simExplainer.retrieveConceptName();
             System.out.println(" Concept Names: " + conceptNames);
@@ -63,7 +63,8 @@ public class SimilarityController {
             }
 
             // save result to file
-            String outputFile = ontopController.buildFilePath("similarity.txt");
+//            String outputFile = ontopController.buildFilePath("similarity.txt");
+            String outputFile = ontopController.getontopModel().getSimilarityFilePath();
             saveSimilarityResultFile(outputFile, resultBuilder.toString());
             return resultBuilder.toString();
         } catch (Exception e) {

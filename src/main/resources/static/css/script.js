@@ -350,83 +350,85 @@ function updateSliderValue(value) {
 }
 
 function filterSimilarity() {
-  if (!similarityRequest.startsWith("Error")) {
-    const conceptList = document.getElementById("conceptListExplanation");
-    conceptList.innerHTML = ""; // Clear existing list items
+    if (!similarityRequest.startsWith("Error")) {
+        const conceptList = document.getElementById("conceptListExplanation");
+        conceptList.innerHTML = ""; // Clear existing list items
 
-    const lines = similarityRequest.split("\n");
-    let threshold = parseFloat(
-      document.getElementById("similarityThreshold").value
-    );
+        const lines = similarityRequest.split("\n");
+        let threshold = parseFloat(
+            document.getElementById("similarityThreshold").value
+        );
+        let result = "";
 
-    lines.forEach((line) => {
-      if (line.trim()) {
-        // Check for non-empty line
-        const parts = line.split("|");
+        lines.forEach((line) => {
+            if (line.trim()) {
+                // Check for non-empty line
+                const parts = line.split("|");
 
-        // Ensure there are enough parts
-        if (parts.length === 8) {
-          const [
-            concept1,
-            concept2,
-            similarity,
-            forwardEx,
-            backwardEx,
-            sumEx,
-            descTree1Str,
-            descTree2Str,
-          ] = parts;
+                // Ensure there are enough parts
+                if (parts.length === 8) {
+                    const [
+                        concept1,
+                        concept2,
+                        similarity,
+                        forwardEx,
+                        backwardEx,
+                        sumEx,
+                        descTree1Str,
+                        descTree2Str,
+                    ] = parts;
 
-          // Parse JSON safely
-          let descTree1, descTree2;
-          try {
-            descTree1 = JSON.parse(descTree1Str);
-            descTree2 = JSON.parse(descTree2Str);
-          } catch (e) {
-            console.error("Error parsing JSON:", e);
-            return; // Skip this entry if JSON parsing fails
-          }
+                    // Parse JSON safely
+                    let descTree1, descTree2;
+                    try {
+                        descTree1 = JSON.parse(descTree1Str);
+                        descTree2 = JSON.parse(descTree2Str);
+                    } catch (e) {
+                        console.error("Error parsing JSON:", e);
+                        return; // Skip this entry if JSON parsing fails
+                    }
 
-          // Check if similarity is above threshold
-          if (parseFloat(similarity) >= threshold) {
-            // Create the list item
-            const listItem = document.createElement("a");
-            listItem.href = "#";
-            listItem.className =
-              "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
-            listItem.innerText = `${concept1} , ${concept2}`;
+                    // Check if similarity is above threshold
+                    if (parseFloat(similarity) >= threshold) {
+                        // Create the list item
+                        const listItem = document.createElement("a");
+                        listItem.href = "#";
+                        listItem.className =
+                            "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+                        listItem.innerText = `${concept1} , ${concept2}`;
 
-            // Create a button for showing details
-            const detailsButton = document.createElement("button");
-            detailsButton.className = "btn btn-info btn-sm";
-            detailsButton.innerText = "Details";
+                        // Create a button for showing details
+                        const detailsButton = document.createElement("button");
+                        detailsButton.className = "btn btn-info btn-sm";
+                        detailsButton.innerText = "Details";
 
-            // Set data attributes for the button
-            detailsButton.dataset.con1 = concept1;
-            detailsButton.dataset.con2 = concept2;
-            detailsButton.dataset.similarity = similarity;
-            detailsButton.dataset.forwardEx = forwardEx;
-            detailsButton.dataset.backwardEx = backwardEx;
-            detailsButton.dataset.sumEx = sumEx;
-            detailsButton.dataset.descTree1 = JSON.stringify(descTree1);
-            detailsButton.dataset.descTree2 = JSON.stringify(descTree2);
+                        // Set data attributes for the button
+                        detailsButton.dataset.con1 = concept1;
+                        detailsButton.dataset.con2 = concept2;
+                        detailsButton.dataset.similarity = similarity;
+                        detailsButton.dataset.forwardEx = forwardEx;
+                        detailsButton.dataset.backwardEx = backwardEx;
+                        detailsButton.dataset.sumEx = sumEx;
+                        detailsButton.dataset.descTree1 = JSON.stringify(descTree1);
+                        detailsButton.dataset.descTree2 = JSON.stringify(descTree2);
 
-            // Add event listener to button
-            detailsButton.addEventListener("click", showExplanation);
+                        // Add event listener to button
+                        detailsButton.addEventListener("click", showExplanation);
 
-            // Append the button to the list item
-            listItem.appendChild(detailsButton);
+                        // Append the button to the list item
+                        listItem.appendChild(detailsButton);
 
-            // Append the list item to the concept list
-            conceptList.appendChild(listItem);
-            saveSimResultFile(`${concept1},${concept2}`)
-          }
-        } else {
-          console.warn("Invalid line:", line);
-        }
-      }
-    });
-  }
+                        // Append the list item to the concept list
+                        conceptList.appendChild(listItem);
+                        result += `${concept1},${concept2}\n`;
+                    }
+                } else {
+                    console.warn("Invalid line:", line);
+                }
+            }
+        });
+        saveSimResultFile(result)
+    }
 }
 
 function saveSimResultFile(result) {
