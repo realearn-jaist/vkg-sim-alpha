@@ -50,8 +50,8 @@ public class RestController {
 
     // This method is used to retrieve the concept names from the OWL file
     @GetMapping("/findAllConceptNames")
-    public String findAllConceptNames() {
-        return ontopController.retrieveConceptName().toString();
+    public List<String> findAllConceptNames() {
+        return ontopController.retrieveConceptName();
     }
 
     // This method is used to send SPAQRL queries to the Ontop CLI

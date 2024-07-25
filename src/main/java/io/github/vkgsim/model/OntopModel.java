@@ -1,9 +1,8 @@
 package io.github.vkgsim.model;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
-import java.awt.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -11,20 +10,28 @@ import java.nio.file.Paths;
 public class OntopModel {
     final private String ontopDir = "ontop-cli/";
     final private String baseUploadDir = "inputFiles/"; // Directory to store uploaded files // Name of the concept file
-    final private String mappingFileName = "mapping.obda"; // Name of the mapping file
-    final private String propertiesFileName = "properties.properties";
     final private String conceptNames = "conceptNames.txt";
     final private String SimilarityNames = "similarity.txt";
     final private String DBSchema = "dbSchema.json";
 
+    private String propertiesFileName;
+
+    private String mappingFileName; // Name of the mapping file
+
     private String username;
     private String owlFileName;
-
     private String fullPath;
-
     public void setUsername(String username) {
         this.username = username;
         this.fullPath = Paths.get(ontopDir, baseUploadDir, username, "/").toString();
+    }
+
+    public void setPropertiesFileName(String propertiesFileName) {
+        this.propertiesFileName = propertiesFileName;
+    }
+
+    public void setMappingFileName(String mappingFileName) {
+        this.mappingFileName = mappingFileName;
     }
 
     public String getUsername() {
@@ -43,12 +50,8 @@ public class OntopModel {
         return baseUploadDir;
     }
 
-    public String getPropertiesFileName() {
-        return propertiesFileName;
-    }
-
-    public String getMappingFileName() {
-        return mappingFileName;
+    public String stringTransformForCLI(@NotNull String input) {
+        return input.replace("\\","/").replace(ontopDir,"");
     }
 
     public String getFilePath() {
@@ -61,14 +64,6 @@ public class OntopModel {
 
     public String getOwlFileDirFilePath() {
         return Paths.get(fullPath, owlFileName).toString();
-    }
-
-    public String getOntopDirFilePath() {
-        return Paths.get(fullPath, ontopDir).toString();
-    }
-
-    public String getBaseUploadDirFilePath() {
-        return Paths.get(fullPath, baseUploadDir).toString();
     }
 
     public String getMappingFilePath() {
@@ -101,6 +96,10 @@ public class OntopModel {
 
     public Path getUploadDirPath() {
         return getPath(baseUploadDir , username);
+    }
+
+    public Path getUploadDriverDirPath() {
+        return getPath("jdbc");
     }
 
     public String getBootstrapFileName(String owlFileName) {

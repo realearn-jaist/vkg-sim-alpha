@@ -38,8 +38,14 @@ public class OntopController {
 
         // set owl file name
         String owlFileName = owlFile.getOriginalFilename();
+        String mappingFileName = mappingFile.getOriginalFilename();
+        String propertiesFileName = propertiesFile.getOriginalFilename();
+        String driverFileName = driverFile.getOriginalFilename();
         ontopModel.setOwlFile(owlFileName);
+        ontopModel.setMappingFileName(mappingFileName);
+        ontopModel.setPropertiesFileName(propertiesFileName);
 
+        // create dir for upload file
         Path uploadDirPath = ontopModel.getUploadDirPath();
         Files.createDirectories(uploadDirPath);
 
@@ -48,15 +54,20 @@ public class OntopController {
         owlFile.transferTo(savedFileOwl.toPath());
 
         // save mapping
-        File savedFileMapping = new File(uploadDirPath.toFile(), "mapping.obda");
+        File savedFileMapping = new File(uploadDirPath.toFile(), mappingFileName);
         mappingFile.transferTo(savedFileMapping.toPath());
 
         // save properties
-        File savedFilePropertiesFile = new File(uploadDirPath.toFile(), "properties.properties");
+        File savedFilePropertiesFile = new File(uploadDirPath.toFile(), propertiesFileName);
         propertiesFile.transferTo(savedFilePropertiesFile.toPath());
 
+        // create dir for upload driver
+
         // save driver
-        File savedFileDriverFile = new File(uploadDirPath.toFile(), driverFile.getOriginalFilename());
+        Path uploadDriverDirPath = ontopModel.getUploadDriverDirPath();
+        Files.createDirectories(uploadDirPath);
+
+        File savedFileDriverFile = new File(uploadDriverDirPath.toFile(), driverFileName);
         driverFile.transferTo(savedFileDriverFile.toPath());
 
     }
@@ -71,13 +82,10 @@ public class OntopController {
         return ontopModel;
     }
 
-
     public void setUsername(String username) {
         ontopModel.setUsername(username);
-        System.out.println("ontopModel.getFilePath(): " + ontopModel.getFilePath());
         directoryPathReader(ontopModel.getFilePath());
     }
-
 
     private void addFileNameIfExists(List<String> fileNames, String fileName) {
         Path filePath = Paths.get(ontopModel.getFilePath(fileName));
@@ -90,6 +98,7 @@ public class OntopController {
         ArrayList<String> fileNames = new ArrayList<>();
         String owlFileName = ontopModel.getOwlFileName();
         addFileNameIfExists(fileNames, owlFileName);
+        System.out.println(owlFileName);
         addFileNameIfExists(fileNames, ontopModel.getBootstrapFileName(owlFileName));
         return fileNames;
     }
@@ -114,10 +123,19 @@ public class OntopController {
                         // Get the file extension
                         String fileExtension = getFileExtension(fileName);
 
-                        // Print the file name and its extension
-                        System.out.println("File: " + fileName + " | Extension: " + fileExtension);
-                        if(fileExtension.equals("owl") | fileExtension.equals("krss")) {
-                            ontopModel.setOwlFile(fileName);
+                        switch(fileExtension) {
+                            case "owl":
+                                ontopModel.setOwlFile(fileName);
+                                break;
+                            case "krss":
+                                ontopModel.setOwlFile(fileName);
+                                break;
+                            case "obda":
+                                ontopModel.setMappingFileName(fileName);
+                                break;
+                            case "properties":
+                                ontopModel.setPropertiesFileName(fileName);
+                                break;
                         }
                     }
                 }
@@ -299,7 +317,6 @@ public class OntopController {
         }
     }
 
-
     public void saveSimResultFile(String result) {
         System.out.println("result: " + result);
         rewritingConcept.clear();
@@ -402,20 +419,33 @@ public class OntopController {
      * Build the Ontop command
      * @param action
      * @param queryFileName
-     * @param owlFileName
+     * @param owlType
      * @return
      */
-    private String buildOntopCommand(String action, String queryFileName, String owlFileName, String queryType) {
+    private String buildOntopCommand(String action, String queryFileName, String owlType, String queryType) {
 //        String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" + mappingFileName;
-        String TMP_MappingFileName = ontopModel.getMappingFilePath().replace("\\","/");
+
+        String TMP_MappingFileName = ontopModel.getMappingFilePath();
+        TMP_MappingFileName = ontopModel.stringTransformForCLI(TMP_MappingFileName);
+
+        String TMP_OWLFileName = ontopModel.getOwlFileDirFilePath();
+        TMP_OWLFileName = ontopModel.stringTransformForCLI(TMP_OWLFileName);
+
+        String TMP_PropertiesFileName = ontopModel.getPropertiesFilePath();
+        TMP_PropertiesFileName = ontopModel.stringTransformForCLI(TMP_PropertiesFileName);
+
         if (queryType.equals("similarity")) {
             System.out.println("Similarity search");
             TMP_MappingFileName = TMP_MappingFileName.replace(".obda","_sim.obda");
         }
-//        String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
-        String TMP_OWLFileName = ontopModel.getOwlFileDirFilePath().replace("\\","/");
+
+        //        String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" + owlFileName;
+
+        if (owlType.equals("Bootstrap")) {
+            TMP_OWLFileName = TMP_OWLFileName.substring(0, TMP_OWLFileName.lastIndexOf('.')) + "_tmp.owl";
+        }
+
 //        String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" + propertiesFileName;
-        String TMP_PropertiesFileName = ontopModel.getPropertiesFilePath().replace("\\","/");
 
         return String.format("ontop %s -m %s -t %s -p %s %s", action, TMP_MappingFileName, TMP_OWLFileName, TMP_PropertiesFileName,
                 queryFileName != null ? "-q " + queryFileName : "");
@@ -448,7 +478,7 @@ public class OntopController {
                 genMappingSimFile();
             }
             // Build command with temporary file
-            String command = buildOntopCommand("query", tempQueryFile.getName(), owlFileType, queryType);
+            String command = buildOntopCommand("query", tempQueryFile.getName(), "Normal", queryType);
 
             // Execute command and handle result
             try {
@@ -472,8 +502,9 @@ public class OntopController {
         // Update the owlFileName to include "_tmp" before the extension
 //        String owlFileName = this.owlFileName.substring(0, this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file name change
         String owlFileNameBootstrap = ontopModel.getBootstrapFileName(ontopModel.getOwlFileName());
+//        owlFileNameBootstrap = owlFileNameBootstrap.substring(0, owlFileNameBootstrap.lastIndexOf('.')) + "_tmp.owl";
         // Build the command for bootstrapping
-        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, owlFileNameBootstrap, "standard");
+        String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, "Bootstrap", "standard");
 
         // Execute the command
         executeCommand(command);
@@ -537,7 +568,6 @@ public class OntopController {
                     swapConcept.add(concept);
                     break;
                 default:
-                    // code block
                     break;
             }
             checker = 0;
@@ -751,8 +781,9 @@ public class OntopController {
             StringBuilder newContent = new StringBuilder();
 
             // Add all lines except the last one
-            for (int i = 0; i < lines.size() - 1; i++) {
-                newContent.append(lines.get(i)).append(System.lineSeparator());
+            for (String line: lines) {
+                if(line.equals("]]")) break;
+                newContent.append(line).append(System.lineSeparator());
             }
             // Append the new text
             for (String s : textToAppend) {
@@ -761,7 +792,7 @@ public class OntopController {
 
             // Append the last line
             if (!lines.isEmpty()) {
-                newContent.append(lines.get(lines.size() - 1));
+                newContent.append("]]");
             }
 
             // Write the new content to a new file
