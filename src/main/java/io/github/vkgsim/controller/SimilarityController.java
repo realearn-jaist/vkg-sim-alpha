@@ -120,12 +120,6 @@ public class SimilarityController {
         this.API_KEY = API_KEY;
     }
 
-    public void loadAPI_KEY() {
-        try {
-            this.API_KEY = ontopController.loadCache().get("API_KEY");
-        } catch (IOException e) {}
-    }
-
     public void deleteProfile() {
         API_KEY = null;
     }

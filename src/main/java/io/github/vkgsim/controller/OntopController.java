@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.vkgsim.model.OntopModel;
 import io.github.vkgsim.util.SymmetricPair;
+import org.apache.catalina.startup.Bootstrap;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -63,7 +64,7 @@ public class OntopController {
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("baseIRI", baseIRI);
-        jsonObject.put("API_KEY", "");
+        jsonObject.put("mappingFile", mappingFileName);
         FileWriter file = new FileWriter(uploadDirPath + "/cache.json");
         file.write(jsonObject.toString());
         file.close();
@@ -121,6 +122,7 @@ public class OntopController {
 
     public void setUsername(String username) throws IOException {
         ontopModel.setUsername(username);
+        directoryPathReader(ontopModel.getFilePath());
 
         try {
             baseIRI = loadCache().get("baseIRI");
@@ -130,7 +132,6 @@ public class OntopController {
 
     public Map<String, String> loadCache() throws IOException {
         try {
-            directoryPathReader(ontopModel.getFilePath());
 
             ObjectMapper mapper = new ObjectMapper();
             File file = new File(ontopModel.getFilePath("cache.json"));
@@ -141,14 +142,14 @@ public class OntopController {
         }
     }
 
-    private void addFileNameIfExists(List<String> fileNames, String fileName) {
+    private void addFileNameIfExists(List<String> fileNames, String fileName) throws NullPointerException{
         Path filePath = Paths.get(ontopModel.getFilePath(fileName));
         if (Files.exists(filePath)) {
             fileNames.add(filePath.getFileName().toString());
         }
     }
 
-    public ArrayList<String> getOWLFileNameWithBoostrap() {
+    public ArrayList<String> getOWLFileNameWithBoostrap() throws NullPointerException{
         ArrayList<String> fileNames = new ArrayList<>();
         String owlFileName = ontopModel.getOwlFileName();
         addFileNameIfExists(fileNames, owlFileName);
@@ -173,6 +174,14 @@ public class OntopController {
                     ontopModel.setOwlFile("ontology.krss");
                 }
 
+                try {
+                    ontopModel.setMappingFileName(loadCache().get("mappingFile"));
+                    System.out.println();
+                    System.out.println(ontopModel.getMappingFilePath());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
                 for (File file : files) {
                     // Check if the file is a file (not a directory)
                     if (file.isFile()) {
@@ -183,9 +192,6 @@ public class OntopController {
                         String fileExtension = getFileExtension(fileName);
 
                         switch(fileExtension) {
-                            case "obda":
-                                ontopModel.setMappingFileName(fileName);
-                                break;
                             case "properties":
                                 ontopModel.setPropertiesFileName(fileName);
                                 break;
@@ -494,11 +500,12 @@ public class OntopController {
             // Create a temporary SPARQL query file
             File tempQueryFile = createTempFile(ontopCliDir, sparqlQuery, "sparqlQuery", ".txt");
 
+            String owlType = (owlFileType.equals("ontology_tmp.owl")) ? "Bootstrap" : "Normal";
             if(queryType.equals("similarity")) {
                 genMappingSimFile();
             }
             // Build command with temporary file
-            String command = buildOntopCommand("query", tempQueryFile.getName(), "Normal", queryType);
+            String command = buildOntopCommand("query", tempQueryFile.getName(), owlType, queryType);
 
             // Execute command and handle result
             try {
@@ -528,6 +535,7 @@ public class OntopController {
         try {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("baseIRI", baseIRI);
+            jsonObject.put("mappingFile", loadCache().get("mappingFile"));
             FileWriter file = new FileWriter(ontopModel.getUploadDirPath() + "/cache.json");
             file.write(jsonObject.toString());
             file.close();
@@ -858,9 +866,19 @@ public class OntopController {
     }
 
     public void deleteProfile() {
+        ontopModel.deleteProfile();
+
         processedProperties = new HashSet<>(); // Set to store processed properties
         rewritingConcept = new ArrayList<>();
         baseIRI = null;
-        ontopModel.deleteProfile();
+
+    }
+
+    public String readBaseIRI() throws IOException {
+        return loadCache().get("baseIRI");
+    }
+
+    public String getUsername() {
+        return ontopModel.getUsername();
     }
 }

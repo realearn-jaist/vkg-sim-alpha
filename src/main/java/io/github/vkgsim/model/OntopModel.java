@@ -1,9 +1,11 @@
 package io.github.vkgsim.model;
 
+import jakarta.validation.constraints.Null;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -59,12 +61,23 @@ public class OntopModel {
         return fullPath;
     }
 
-    public String getFilePath(String fileName) {
+    public String getFilePath(String fileName) throws NullPointerException{
         return Paths.get(fullPath, fileName).toString();
     }
 
     public String getOwlFileDirFilePath() {
-        return Paths.get(fullPath, owlFileName).toString();
+        if (fullPath == null) {
+            throw new NullPointerException("fullPath is null");
+        }
+        if (owlFileName == null) {
+            throw new NullPointerException("owlFileName is null");
+        }
+        try {
+            return Paths.get(fullPath, owlFileName).toString();
+        } catch (InvalidPathException e) {
+            // Handle the exception or rethrow it with a custom message
+            throw new RuntimeException("Invalid path: " + e.getMessage(), e);
+        }
     }
 
     public String getMappingFilePath() {
@@ -110,7 +123,7 @@ public class OntopModel {
     // Method to delete the profile directory or file.
     public boolean deleteProfile() {
 
-        String filePath = getOwlFileDirFilePath();
+        String filePath = fullPath;
         File fileOrDir = new File(filePath);
 
         if (fileOrDir.exists()) {
@@ -138,6 +151,7 @@ public class OntopModel {
                 }
             }
         }
+        System.out.println("delete: " + fileOrDir.getName());
         return fileOrDir.delete();
     }
 }

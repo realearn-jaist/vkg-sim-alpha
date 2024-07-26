@@ -32,7 +32,6 @@ public class RestController {
     @GetMapping("/createUserFolder")
     public String createUserFolder(@RequestParam String username) throws IOException {
         ontopController.setUsername(username);
-        similarityController.loadAPI_KEY();
         return ontopController.createUserFolder();
     }
 
@@ -46,6 +45,11 @@ public class RestController {
             @RequestParam("api_key") String api_key
     ) {
         try {
+            String current_username = ontopController.getUsername();
+            if (current_username != null) {
+                ontopController.deleteProfile(); // refresh folder
+                createUserFolder(current_username);
+            }
             ontopController.initial(owlFile, mappingFile, propertiesFile, driverFile);
             similarityController.setAPI_KEY(api_key);
         } catch (IOException e) {
@@ -59,8 +63,20 @@ public class RestController {
 
     // This method is used to retrieve the concept names from the OWL file
     @GetMapping("/findAllConceptNames")
-    public List<String> findAllConceptNames() {
-        return ontopController.retrieveConceptName();
+    public ResponseEntity<List<String>> findAllConceptNames() {
+        try {
+            List<String> conceptNames = ontopController.retrieveConceptName();
+            if (conceptNames == null || conceptNames.isEmpty()) {
+                return ResponseEntity.noContent().build(); // 204 No Content
+            }
+            return ResponseEntity.ok(conceptNames); // 200 OK
+        } catch (Exception e) {
+            // Log the exception
+            System.err.println("Error retrieving concept names: " + e.getMessage());
+            // Return 500 Internal Server Error with a meaningful message
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList()); // Or other error handling strategy
+        }
     }
 
     @DeleteMapping("/deleteProfile")
@@ -91,7 +107,7 @@ public class RestController {
         try {
             return new ResponseEntity<>(ontopController.ontopBootstrap(baseIRI), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -109,6 +125,16 @@ public class RestController {
     public ResponseEntity<String> readMappingFileContent() {
         try {
             return new ResponseEntity<>(ontopController.readMappingFileContent(), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+    }
+
+    @GetMapping("/readBaseIRI")
+    public ResponseEntity<String> readBaseIRI() {
+        try {
+            return new ResponseEntity<>(ontopController.readBaseIRI(), HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -146,8 +172,12 @@ public class RestController {
 
     // This method is used to retrieve the owl file name (normal and bootstrap)
     @GetMapping("/getOWLFilename")
-    public List<String> getOWLFilename() {
-        return ontopController.getOWLFileNameWithBoostrap();
+    public ResponseEntity<List<String>> getOWLFilename(){
+        try {
+            return new ResponseEntity<>(ontopController.getOWLFileNameWithBoostrap(), HttpStatus.OK);
+        } catch (NullPointerException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     @PostMapping("/saveSimResultFile")
