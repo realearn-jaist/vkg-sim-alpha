@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.github.vkgsim.model.OntopModel;
 import io.github.vkgsim.util.SymmetricPair;
-import org.apache.catalina.startup.Bootstrap;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -38,10 +37,10 @@ public class OntopController {
      * Initialize the OntopController and OntopModel value.
      * Save the uploaded files to the user folder.
      * 
-     * @param owlFile
-     * @param mappingFile
-     * @param propertiesFile
-     * @param driverFile
+     * @param owlFile owl file
+     * @param mappingFile mapping file
+     * @param propertiesFile properties file
+     * @param driverFile driver file
      * @throws IOException
      * @throws OWLOntologyCreationException
      */
@@ -105,8 +104,8 @@ public class OntopController {
     /**
      * Extract the base IRI from the OWL file
      * 
-     * @param owlFile
-     * @return
+     * @param owlFile owl file
+     * @return BaseIRI base IRI from the OWL file
      * @throws OWLOntologyCreationException
      * @throws IOException
      */
@@ -138,7 +137,7 @@ public class OntopController {
     /**
      * Get the OntopModel
      * 
-     * @return
+     * @return ontopModel
      */
     public OntopModel getontopModel() {
         return ontopModel;
@@ -147,7 +146,7 @@ public class OntopController {
     /**
      * Set username and load value from cache
      * 
-     * @param username
+     * @param username username
      */
     public void setUsername(String username) {
         ontopModel.setUsername(username);
@@ -161,14 +160,13 @@ public class OntopController {
     }
 
     /**
-     * Load importance value when user login from cache
-     * 
-     * @return
+     * Load importance value from cache
+     *
+     * @return cache that kept importance values
      * @throws IOException
      */
     public Map<String, String> loadCache() throws IOException {
         try {
-
             ObjectMapper mapper = new ObjectMapper();
             File file = new File(ontopModel.getFilePath("cache.json"));
             Map<String, String> map = mapper.readValue(file, Map.class);
@@ -179,10 +177,11 @@ public class OntopController {
     }
 
     /**
-     * Set the OWL file name
-     * 
-     * @param fileNames
-     * @param fileName
+     * Add the file name to the list if it exists
+     * @param fileNames list of file names
+     * @param fileName file name
+     *
+     * @throws NullPointerException
      */
     private void addFileNameIfExists(List<String> fileNames, String fileName) throws NullPointerException {
         Path filePath = Paths.get(ontopModel.getFilePath(fileName));
@@ -192,9 +191,9 @@ public class OntopController {
     }
 
     /**
-     * Get the OWL file name
+     * Get all the OWL file names
      * 
-     * @return
+     * @return fileNames all the OWL file names
      */
     public ArrayList<String> getOWLFileNameWithBoostrap() throws NullPointerException {
         ArrayList<String> fileNames = new ArrayList<>();
@@ -205,9 +204,9 @@ public class OntopController {
     }
 
     /**
-     * Get the mapping file name
+     * function to read all the file name in directory
      * 
-     * @param directoryPath
+     * @param directoryPath path of the directory
      */
     private void directoryPathReader(String directoryPath) {
 
@@ -259,10 +258,10 @@ public class OntopController {
     }
 
     /**
-     * Get the OWL file name
+     * Get the extension of the file
      * 
-     * @param fileName
-     * @return
+     * @param fileName file name
+     * @return extension of the file
      */
     private String getFileExtension(String fileName) {
         if (fileName.lastIndexOf(".") != -1 && fileName.lastIndexOf(".") != 0) {
@@ -279,8 +278,8 @@ public class OntopController {
     /**
      * Prepare the OWL file
      * 
-     * @param owlFile
-     * @return
+     * @param owlFile owl file
+     * @return ontology file
      */
     public OWLOntology prepareOWLFile(File owlFile) {
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
@@ -297,8 +296,8 @@ public class OntopController {
     /**
      * Save the mapping file
      * 
-     * @param mapping
-     * @return
+     * @param mapping mapping file
+     * @return mapping file after user edit
      */
     public String saveMapping(String mapping) {
         String TMP_MappingFileName = ontopModel.getMappingFilePath();
@@ -314,9 +313,9 @@ public class OntopController {
     /**
      * Retrieve object properties for a given OWL class
      * 
-     * @param ontology
-     * @param owlClass
-     * @param shortFormProvider
+     * @param ontology ontology
+     * @param owlClass owl class
+     * @param shortFormProvider short form provider
      */
     public void addObjectProperties(OWLOntology ontology, OWLClass owlClass, ShortFormProvider shortFormProvider) {
         for (OWLIndividual individual : owlClass.getIndividuals(ontology)) {
@@ -333,7 +332,7 @@ public class OntopController {
     /**
      * Retrieve the concept names
      * 
-     * @return
+     * @return list of concept names
      */
     public List<String> retrieveConceptName() {
         String owlFilePath = ontopModel.getOwlFileDirFilePath();
@@ -352,7 +351,6 @@ public class OntopController {
             }
         }
         // save all concept names to a file
-        // String TMP_ConceptFileName = buildFilePath(conceptFileName);
         String TMP_ConceptFileName = ontopModel.getConceptNamesFilePath();
         try (FileWriter writer = new FileWriter(TMP_ConceptFileName)) {
             for (String conceptName : conceptNames) {
@@ -366,15 +364,14 @@ public class OntopController {
     }
 
     /**
-     * Retrieve the object properties
+     * Read similarity concepts from file
      * 
-     * @return
+     * @return similarity concepts as json array
      * @throws IOException
      */
     public JSONArray readSimilarityFileContent() throws IOException {
         String TMP_MappingFileName = ontopModel.getSimilarityFilePath();
         try (BufferedReader reader = new BufferedReader(new FileReader(TMP_MappingFileName))) {
-            StringBuilder contentBuilder = new StringBuilder();
             JSONArray similaritiesArray = new JSONArray();
 
             String line;
@@ -404,11 +401,11 @@ public class OntopController {
     }
 
     /**
-     * Save the similarity file
+     * Save the similarity concepts to rewritingConcept for rewriting
      * 
-     * @param result
+     * @param result string of similarity concepts
      */
-    public void saveSimResultFile(String result) {
+    public void saveSimResult(String result) {
         System.out.println("result: " + result);
         try {
             rewritingConcept.clear();
@@ -433,9 +430,9 @@ public class OntopController {
     }
 
     /**
-     * Save the similarity file
+     * read the mapping source and target from file
      * 
-     * @return
+     * @return mapping of source and target as a String
      * @throws IOException
      */
     public String readMappingFileContent() throws IOException {
@@ -454,7 +451,7 @@ public class OntopController {
     /**
      * Create a user folder
      * 
-     * @return
+     * @return user folder path
      */
     public String createUserFolder() {
         Path userFolder = ontopModel.getPath("inputFiles", ontopModel.getUsername());
@@ -470,8 +467,8 @@ public class OntopController {
     /**
      * Execute a command
      * 
-     * @param command
-     * @return
+     * @param command command
+     * @return result after run the command as a String
      */
     public String executeCommand(String command) {
         System.out.println("Executing command: " + command);
@@ -499,11 +496,11 @@ public class OntopController {
     /**
      * Create a temporary file
      * 
-     * @param directory
-     * @param content
-     * @param prefix
-     * @param suffix
-     * @return
+     * @param directory directory
+     * @param content content
+     * @param prefix prefix
+     * @param suffix suffix
+     * @return temporary file
      * @throws IOException
      */
     public File createTempFile(Path directory, String content, String prefix, String suffix) throws IOException {
@@ -518,38 +515,33 @@ public class OntopController {
     /**
      * Build the Ontop command
      * 
-     * @param action
-     * @param queryFileName
-     * @param owlType
-     * @return
+     * @param action action
+     * @param queryFileName name of the query file
+     * @param owlType type of owl
+     * @return Ontop command as a String
      */
     private String buildOntopCommand(String action, String queryFileName, String owlType, String queryType) {
-        // String TMP_MappingFileName = getBaseUploadDir() + getUsername() + "/" +
-        // mappingFileName;
 
+        // load file path for Ontop command
         String TMP_MappingFileName = ontopModel.getMappingFilePath();
-        TMP_MappingFileName = ontopModel.stringTransformForCLI(TMP_MappingFileName);
-
         String TMP_OWLFileName = ontopModel.getOwlFileDirFilePath();
-        TMP_OWLFileName = ontopModel.stringTransformForCLI(TMP_OWLFileName);
-
         String TMP_PropertiesFileName = ontopModel.getPropertiesFilePath();
+
+        // Transform the file paths for the CLI
+        TMP_MappingFileName = ontopModel.stringTransformForCLI(TMP_MappingFileName);
+        TMP_OWLFileName = ontopModel.stringTransformForCLI(TMP_OWLFileName);
         TMP_PropertiesFileName = ontopModel.stringTransformForCLI(TMP_PropertiesFileName);
 
+        // Read similarity mapping when search with similarity
         if (queryType.equals("similarity")) {
             System.out.println("Similarity search");
             TMP_MappingFileName = TMP_MappingFileName.replace(".obda", "_sim.obda");
         }
 
-        // String TMP_OWLFileName = getBaseUploadDir() + getUsername() + "/" +
-        // owlFileName;
-
+        // Read owl file that generate from bootstrap
         if (owlType.equals("Bootstrap")) {
             TMP_OWLFileName = TMP_OWLFileName.substring(0, TMP_OWLFileName.lastIndexOf('.')) + "_tmp.owl";
         }
-
-        // String TMP_PropertiesFileName = getBaseUploadDir() + getUsername() + "/" +
-        // propertiesFileName;
 
         return String.format("ontop %s -m %s -t %s -p %s %s", action, TMP_MappingFileName, TMP_OWLFileName,
                 TMP_PropertiesFileName,
@@ -559,7 +551,7 @@ public class OntopController {
     /**
      * Delete a temporary file
      * 
-     * @param file
+     * @param file file to delete
      */
     public void deleteTempFile(File file) {
         if (file != null && file.exists()) {
@@ -570,14 +562,13 @@ public class OntopController {
     /**
      * Execute a SPARQL query
      * 
-     * @param sparqlQuery
-     * @param owlFileType
-     * @param queryType
-     * @return
+     * @param sparqlQuery sparql query
+     * @param owlFileType owl file type
+     * @param queryType query type
+     * @return result after run the query
      * @throws IOException
      */
     public String ontopQuery(String sparqlQuery, String owlFileType, String queryType) throws IOException {
-        // Path ontopCliDir = Paths.get(System.getProperty("user.dir"), OntopDir);
         Path ontopCliDir = ontopModel.getPath();
         try {
             // Create a temporary SPARQL query file
@@ -607,10 +598,10 @@ public class OntopController {
     }
 
     /**
-     * Bootstrap the Ontop model
+     * Generate mapping file from bootstrap
      * 
-     * @param baseIRI
-     * @return
+     * @param baseIRI base IRI
+     * @return mapping of source and target as a String
      */
     public String ontopBootstrap(String baseIRI) {
         this.baseIRI = baseIRI;
@@ -624,13 +615,7 @@ public class OntopController {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        // Update the owlFileName to include "_tmp" before the extension
-        // String owlFileName = this.owlFileName.substring(0,
-        // this.owlFileName.lastIndexOf('.')) + "_tmp.owl"; // Apply the temporary file
-        // name change
-        String owlFileNameBootstrap = ontopModel.getBootstrapFileName(ontopModel.getOwlFileName());
-        // owlFileNameBootstrap = owlFileNameBootstrap.substring(0,
-        // owlFileNameBootstrap.lastIndexOf('.')) + "_tmp.owl";
+
         // Build the command for bootstrapping
         String command = buildOntopCommand("bootstrap --base-iri " + baseIRI, null, "Bootstrap", "standard");
 
@@ -649,9 +634,9 @@ public class OntopController {
     }
 
     /**
-     * Generate the similarity mapping file
+     * Read concepts name in file
      * 
-     * @return
+     * @return all concepts name in file
      */
     public String readConceptNameFile() {
         String TMP_ConceptFileName = ontopModel.getConceptNamesFilePath();
@@ -663,7 +648,6 @@ public class OntopController {
             System.err.println("Error reading concept names file: " + e.getMessage());
             return "Error reading concept names file.";
         }
-
     }
 
     ///////////////////////////
@@ -671,7 +655,7 @@ public class OntopController {
     ///////////////////////////
 
     /**
-     * Generate the similarity mapping file
+     * Generate the similarity mapping file for similarity search
      */
     private void genMappingSimFile() {
         // get all concept in mapping file into list
@@ -682,10 +666,10 @@ public class OntopController {
     }
 
     /**
-     * Filter the rewriting concept
+     * Filter the rewriting concept which concept can swap or which concept must generate source from database schema
      * 
-     * @param conceptInDatabase
-     * @return
+     * @param conceptInDatabase all concepts that found on database which extract from mapping file
+     * @return list of swap concept and generate concept
      */
     public List<ArrayList<SymmetricPair<String>>> filterRewritingConcept(HashSet<String> conceptInDatabase) {
         ArrayList<SymmetricPair<String>> swapConcept = new ArrayList<>();
@@ -719,9 +703,9 @@ public class OntopController {
     }
 
     /**
-     * Extract the mapping value file
+     * Extract source and target from the mapping file
      * 
-     * @return
+     * @return hashmap which contains source and target as a key and value respectively
      */
     public HashMap<String, HashMap<String, String>> extractMappingValueFile() {
         HashMap<String, HashMap<String, String>> mappingIdMap = new HashMap<>();
@@ -733,7 +717,6 @@ public class OntopController {
 
         try {
             // Read file
-            // String filePath = buildFilePath(mappingFileName);
             String filePath = ontopModel.getMappingFilePath();
             BufferedReader br = new BufferedReader(new FileReader(filePath));
 
@@ -797,8 +780,8 @@ public class OntopController {
     /**
      * Extract the concept in the mapping file
      * 
-     * @param baseIRI
-     * @return
+     * @param baseIRI base IRI
+     * @return all concepts that appear in mapping file
      */
     public HashSet<String> extractConceptInMappingFile(String baseIRI) {
         HashSet<String> conceptInMapping = new HashSet<>();
@@ -834,10 +817,10 @@ public class OntopController {
     }
 
     /**
-     * Generate the similarity mapping value
+     * Generate the similarity mapping value from swap concepts and generate concepts
      * 
-     * @param rewritingValue
-     * @return
+     * @param rewritingValue all concepts that use for similarity search
+     * @return String of source and target value that will append end of mapping file
      */
     public ArrayList<String> genSimMappingValue(List<ArrayList<SymmetricPair<String>>> rewritingValue) {
         ArrayList<SymmetricPair<String>> swapConceptPair = rewritingValue.get(0);
@@ -865,9 +848,8 @@ public class OntopController {
                 if (innerMap.get("target").contains(concepts.getFirst())) {
                     /*
                      * not implement
-                     * String targetString <-
-                     * String sourceString = innerMap.get("target").replace(concepts.getFirst(),
-                     * concepts.getSecond());
+                     * String targetString <- craft target which use columns name from database dbSchema
+                     * String sourceString <- craft source which where cause need to find that concept in value in database
                      * String simMapping = "mappingId\tMAPPING-SIM-ID" + counter++ + "\n" +
                      * "target\t\t" + targetString + "\n" +
                      * "source\t\t" + sourceString;
@@ -884,7 +866,7 @@ public class OntopController {
     /**
      * Extract the database schema
      * 
-     * @param baseIRI
+     * @param baseIRI base IRI
      */
     public void extractDBSchema(String baseIRI) {
         String filePath = ontopModel.getDBSchemaFilePath();
@@ -909,9 +891,9 @@ public class OntopController {
     /**
      * Extract the table columns information
      * 
-     * @param dbSchema
-     * @param baseIRI
-     * @param input
+     * @param dbSchema database schema
+     * @param baseIRI base IRI
+     * @param input string that want to extract
      */
     public void extractTableColumnsInfo(HashMap<String, List<String>> dbSchema, String baseIRI, String input) {
 
@@ -944,7 +926,7 @@ public class OntopController {
     /**
      * Append text to the end of the file
      * 
-     * @param textToAppend
+     * @param textToAppend text that will be used for append in file
      */
     public void addTextEOF(ArrayList<String> textToAppend) {
         // String originalFilePath = buildFilePath(mappingFileName);
@@ -991,8 +973,8 @@ public class OntopController {
 
     /**
      * Make a full map
-     * 
-     * @param map
+     * i.e. make (a,b) to (a,b), (b,a)
+     * @param map map that want to expand to full map
      */
     public void makeFullMap(ArrayList<SymmetricPair<String>> map) {
         ArrayList<SymmetricPair<String>> reversedMap = new ArrayList<>();
@@ -1016,10 +998,19 @@ public class OntopController {
 
     }
 
+    /**
+     * read BaseIRI from cache
+     * @return baseIRI
+     * @throws IOException
+     */
     public String readBaseIRI() throws IOException {
         return loadCache().get("baseIRI");
     }
 
+    /**
+     * get username
+     * @return username
+     */
     public String getUsername() {
         return ontopModel.getUsername();
     }
