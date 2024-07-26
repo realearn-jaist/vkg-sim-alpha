@@ -1,13 +1,10 @@
 package io.github.vkgsim.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.vkgsim.model.OntopModel;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
-import java.io.File;
 import java.io.IOException;
 
 @org.springframework.web.bind.annotation.RestController
@@ -186,7 +182,7 @@ public class RestController {
     ) {
         String result = request.get("result");
         if (!result.isEmpty()) {
-            ontopController.saveSimResultFile(result);
+            ontopController.saveSimResult(result);
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
