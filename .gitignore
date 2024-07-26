@@ -17,6 +17,7 @@
 !src/test/resources/**
 src/test/resources/ontop-cli/**
 
+
 !mvnw
 !mvnw.cmd
 !pom.xml
@@ -26,6 +27,9 @@ src/test/resources/ontop-cli/**
 
 
 !ontop-cli/**
+ontop-cli/inputFiles/**
+ontop-cli/sparql*
+ontop-cli/jdbc/**
 ontop-cli/logback.xml
 ontop-cli/log/**
 
