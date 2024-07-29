@@ -122,6 +122,7 @@ public class RestController {
         try {
             return new ResponseEntity<>(ontopController.generateVisualizeMapping(mappingID), HttpStatus.OK);
         } catch (Exception e) {
+            System.err.println(e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

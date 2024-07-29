@@ -62,7 +62,6 @@ public class OntopController {
         } else {
             baseIRI = "http://";
         }
-        System.out.println(baseIRI);
 
         // set mapping file name
         String mappingFileName = mappingFile.getOriginalFilename();
@@ -259,8 +258,6 @@ public class OntopController {
 
                 try {
                     ontopModel.setMappingFileName(loadCache().get("mappingFile"));
-                    System.out.println();
-                    System.out.println(ontopModel.getMappingFilePath());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -335,11 +332,11 @@ public class OntopController {
         String TMP_MappingFileName = ontopModel.getMappingFilePath();
         try (FileWriter writer = new FileWriter(TMP_MappingFileName)) {
             writer.write(mapping);
-            extractSchema("col");
         } catch (IOException e) {
             System.err.println("Failed to save mapping: " + e.getMessage());
             return "Error saving mapping file.";
         }
+        extractSchema("col");
         return mapping;
     }
 
@@ -1030,14 +1027,8 @@ public class OntopController {
     public ArrayList<List<String>> mappingIntoGraphInfo(String mappingId) throws IOException {
         ArrayList<List<String>> result = new ArrayList<>();
         HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
-        String tableName = "";
-        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
-            HashMap<String, String> innerMap = outerEntry.getValue();
-            if(outerEntry.getKey().equals(mappingId)) {
-                tableName = extractTable(innerMap.get("target"));
-                break;
-            }
-        }
+        String tableName = extractTable(mappingIdMap.get(mappingId).get("target"));
+
         Map<String, List<String>> DBSchema =  loadDBSchema();
         List<String> tableColumnsName = DBSchema.get(tableName);
 
