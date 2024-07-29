@@ -24,7 +24,7 @@ src/test/resources/ontop-cli/**
 
 !libs/library.jar
 
-
+!frontend-vkgsim/**
 
 !ontop-cli/**
 ontop-cli/inputFiles/**
