@@ -221,7 +221,7 @@ To deploy the VKGSim application on an EC2 instance, follow these steps:
      ```
      to:
      ```java
-     ProcessBuilder processBuilder = new ProcessBuilder("", "-c", "cd ontop-cli && " + command);
+     ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", "cd ontop-cli && " + command);
      ```
 
 ### 5. Install Dependencies
