@@ -107,6 +107,25 @@ public class RestController {
         }
     }
 
+    @GetMapping("/getMappingID")
+    public ResponseEntity<List<String>> getMappingID() {
+        try {
+            return new ResponseEntity<>(ontopController.getAllMappingID(), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/getVisualizeMappingID")
+    public ResponseEntity<String> getVisualizeMappingID(@RequestParam String id) {
+        String mappingID = id;
+        try {
+            return new ResponseEntity<>(ontopController.generateVisualizeMapping(mappingID), HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     // This method is used to save the mapping file
     @PostMapping("/saveMapping")
     public String saveMapping(

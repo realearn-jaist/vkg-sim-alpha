@@ -16,6 +16,7 @@ public class OntopModel {
     final private String conceptNames = "conceptNames.txt";
     final private String SimilarityNames = "similarity.txt";
     final private String DBSchema = "dbSchema.json";
+    final private String ColumnsSchema = "columnsSchema.json";
 
     private String propertiesFileName;
 
@@ -98,6 +99,10 @@ public class OntopModel {
 
     public String getDBSchemaFilePath() {
         return Paths.get(fullPath, DBSchema).toString();
+    }
+
+    public String getColumnsSchemaFilePath() {
+        return Paths.get(fullPath, ColumnsSchema).toString();
     }
 
     public Path getPath() {

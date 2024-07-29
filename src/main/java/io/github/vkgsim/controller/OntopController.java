@@ -1,7 +1,12 @@
 package io.github.vkgsim.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import guru.nidi.graphviz.engine.Format;
+import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.model.MutableGraph;
+import guru.nidi.graphviz.parse.Parser;
 import io.github.vkgsim.model.OntopModel;
 import io.github.vkgsim.util.SymmetricPair;
 import org.json.JSONArray;
@@ -22,6 +27,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.nio.file.StandardOpenOption;
+import java.util.stream.Stream;
 
 @Component
 public class OntopController {
@@ -176,6 +182,32 @@ public class OntopController {
         }
     }
 
+    public Map<String, List<String>> loadDBSchema() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        File file = new File(ontopModel.getFilePath("dbSchema.json"));
+        try {
+            // Specify the correct type reference for the map
+            Map<String, List<String>> map = mapper.readValue(file, new TypeReference<Map<String, List<String>>>() {});
+            return map;
+        } catch (IOException e) {
+            // Consider logging the exception and/or providing a more informative message
+            throw new IOException("Failed to load the DB schema", e);
+        }
+    }
+
+    public Map<String, List<String>> loadColumnsSchema() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        File file = new File(ontopModel.getFilePath("columnsSchema.json"));
+        try {
+            // Specify the correct type reference for the map
+            Map<String, List<String>> map = mapper.readValue(file, new TypeReference<Map<String, List<String>>>() {});
+            return map;
+        } catch (IOException e) {
+            // Consider logging the exception and/or providing a more informative message
+            throw new IOException("Failed to load the columns schema", e);
+        }
+    }
+
     /**
      * Add the file name to the list if it exists
      * @param fileNames list of file names
@@ -303,6 +335,7 @@ public class OntopController {
         String TMP_MappingFileName = ontopModel.getMappingFilePath();
         try (FileWriter writer = new FileWriter(TMP_MappingFileName)) {
             writer.write(mapping);
+            extractSchema("col");
         } catch (IOException e) {
             System.err.println("Failed to save mapping: " + e.getMessage());
             return "Error saving mapping file.";
@@ -480,13 +513,18 @@ public class OntopController {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                     BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                 System.out.println("Command executed successfully.");
-                reader.lines().forEach(line -> output.append("Output: ").append(line).append("\n"));
-                errorReader.lines().forEach(line -> output.append("Error: ").append(line).append("\n"));
+                Stream<String> outp = reader.lines();
+                outp.forEach(line -> output.append("Output: ").append(line).append("\n"));
+
+                if (output.isEmpty()) {
+                    errorReader.lines().forEach(line -> output.append("Error: ").append(line).append("\n"));
+                }
+
                 System.out.println("Output: " + output.toString());
             }
-            int exitCode = process.waitFor();
-            output.append("Exited with error code: ").append(exitCode).append("\n");
-        } catch (IOException | InterruptedException e) {
+//            int exitCode = process.waitFor();
+//            output.append("Exited with error code: ").append(exitCode).append("\n");
+        } catch (IOException e) {
             Thread.currentThread().interrupt();
             System.err.println("Command execution failed: " + e.getMessage());
         }
@@ -623,7 +661,8 @@ public class OntopController {
         executeCommand(command);
 
         // Extract database schema
-        extractDBSchema(baseIRI);
+        extractSchema("db");
+        extractSchema("col");
 
         // Return the content of the mapping file
         try {
@@ -659,7 +698,7 @@ public class OntopController {
      */
     private void genMappingSimFile() {
         // get all concept in mapping file into list
-        HashSet<String> conceptInDatabase = extractConceptInMappingFile(baseIRI);
+        HashSet<String> conceptInDatabase = extractConceptInMappingFile();
         List<ArrayList<SymmetricPair<String>>> rewritingValue = filterRewritingConcept(conceptInDatabase);
         ArrayList<String> textToAppend = genSimMappingValue(rewritingValue);
         addTextEOF(textToAppend);
@@ -779,11 +818,10 @@ public class OntopController {
 
     /**
      * Extract the concept in the mapping file
-     * 
-     * @param baseIRI base IRI
+     *
      * @return all concepts that appear in mapping file
      */
-    public HashSet<String> extractConceptInMappingFile(String baseIRI) {
+    public HashSet<String> extractConceptInMappingFile() {
         HashSet<String> conceptInMapping = new HashSet<>();
         HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
         // assume concepts are after 'a' relationship
@@ -814,6 +852,49 @@ public class OntopController {
             }
         }
         return conceptInMapping;
+    }
+
+    /**
+     * Extract the concept in the mapping file
+     *
+     * @return all concepts that appear in mapping file
+     */
+    public String extractConceptInMappingFile(String mappingID) {
+        HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
+        // assume concepts are after 'a' relationship
+        String keyword = "a";
+
+        // Define the regex pattern to find the value after the keyword
+        String regex = keyword + "\\s*<([^>]+)>";
+
+        // Compile the pattern
+        Pattern pattern = Pattern.compile(regex);
+
+        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
+            String outerMap = outerEntry.getKey();
+            HashMap<String, String> innerMap = outerEntry.getValue();
+            if (outerMap.equals(mappingID)) {
+                Matcher matcher = pattern.matcher(innerMap.get("target"));
+                if (matcher.find()) {
+                    String extractedValue = matcher.group(1);
+
+                    // Remove the base IRI from the extracted value
+                    if (extractedValue.startsWith(baseIRI)) {
+                        return extractedValue.substring(baseIRI.length());
+                    } else {
+                        System.out.println("The extracted value does not start with the base IRI.");
+                    }
+                }
+            }
+        }
+        return "There is no this mapping ID (impossible since we since this from web)";
+    }
+
+    public List<String> getAllMappingID() {
+        HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
+        ArrayList<String> allMappingID = new ArrayList<>();
+        allMappingID.addAll(mappingIdMap.keySet());
+        return allMappingID;
     }
 
     /**
@@ -865,24 +946,29 @@ public class OntopController {
 
     /**
      * Extract the database schema
-     * 
-     * @param baseIRI base IRI
+     *
      */
-    public void extractDBSchema(String baseIRI) {
-        String filePath = ontopModel.getDBSchemaFilePath();
-        HashMap<String, List<String>> dbSchema = new HashMap<>();
+    private void extractSchema(String mode) {
+        String filePath;
+        if(mode.equals("db")) {
+            filePath = ontopModel.getDBSchemaFilePath();
+        } else {
+            filePath = ontopModel.getColumnsSchemaFilePath();
+        }
+
+        HashMap<String, List<String>> schema = new HashMap<>();
         HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
                 HashMap<String, String> innerMap = outerEntry.getValue();
                 if (innerMap.get("source").contains("*")) {
-                    extractTableColumnsInfo(dbSchema, baseIRI, innerMap.get("target"));
+                    extractTableColumnsInfo(schema, this.baseIRI, innerMap.get("target"));
                 }
             }
 
-            objectMapper.writeValue(new File(filePath), dbSchema);
-            System.out.println("JSON file created: dbSchema.json");
+            objectMapper.writeValue(new File(filePath), schema);
+            System.out.println("JSON file created: " + mode + ".json");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -921,6 +1007,52 @@ public class OntopController {
             }
         }
 
+    }
+
+    public String extractTable(String input) {
+
+        Pattern pattern = Pattern.compile("<(.*?)>");
+        Matcher matcher = pattern.matcher(input);
+
+        while (matcher.find()) {
+            String fullIRI = matcher.group(1);
+            if (fullIRI.startsWith(baseIRI)) {
+                String relativeIRI = fullIRI.substring(baseIRI.length());
+                String[] parts = relativeIRI.split("#");;
+
+                return parts[0].split("/")[0];
+            }
+        }
+
+        return null;
+    }
+
+    public ArrayList<List<String>> mappingIntoGraphInfo(String mappingId) throws IOException {
+        ArrayList<List<String>> result = new ArrayList<>();
+        HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
+        String tableName = "";
+        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
+            HashMap<String, String> innerMap = outerEntry.getValue();
+            if(outerEntry.getKey().equals(mappingId)) {
+                tableName = extractTable(innerMap.get("target"));
+                break;
+            }
+        }
+        Map<String, List<String>> DBSchema =  loadDBSchema();
+        List<String> tableColumnsName = DBSchema.get(tableName);
+
+        Map<String, List<String>> ColumnsSchema = loadColumnsSchema();
+        List<String> labelsName = ColumnsSchema.get(tableName);
+
+        String concept = extractConceptInMappingFile(mappingId);
+
+        result.add(Arrays.asList(tableName, "type", concept));
+
+        for(int i=0; i<tableColumnsName.size(); i++) {
+            result.add(Arrays.asList(tableName, tableColumnsName.get(i), labelsName.get(i)));
+        }
+
+        return result;
     }
 
     /**
@@ -1013,5 +1145,49 @@ public class OntopController {
      */
     public String getUsername() {
         return ontopModel.getUsername();
+    }
+
+    public String generateVisualizeMapping(String mappingID) throws IOException {
+        ArrayList<List<String>> pair_list = mappingIntoGraphInfo(mappingID);
+
+        StringBuilder graph = new StringBuilder("digraph G {\n");
+
+        if (pair_list.isEmpty()) {
+            graph.append("}");
+            return createGraphImage(graph.toString());
+        }
+
+        String head = pair_list.get(0).get(0);
+        graph.append("    ").append(head).append(" [label=\"").append(head).append("\"];\n");
+
+        int uniqueId = 0;
+        for (List<String> entry : pair_list) {
+            if (entry.size() < 3) {
+                continue; // Skip invalid entries
+            }
+
+            String label = entry.get(1);
+            String destination = entry.get(2);
+
+            String uid = "node" + uniqueId++;
+            graph.append("    ").append(uid).append(" [label=\"").append(destination).append("\"];\n");
+
+            // Create the edge with a label
+            graph.append("    ").append(head).append(" -> ").append(uid)
+                    .append(" [label=\"").append(label).append("\"];\n");
+        }
+
+        graph.append("}");
+        return createGraphImage(graph.toString());
+    }
+
+    private String createGraphImage(String dotSource) throws IOException {
+        MutableGraph g = new Parser().read(dotSource);
+        File out = new File("graph.png");
+        Graphviz.fromGraph(g).width(700).render(Format.PNG).toFile(out);
+
+        // Convert the image file to Base64 string
+        byte[] fileContent = Files.readAllBytes(Paths.get(out.getPath()));
+        return Base64.getEncoder().encodeToString(fileContent);
     }
 }
