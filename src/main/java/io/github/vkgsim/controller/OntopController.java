@@ -50,8 +50,8 @@ public class OntopController {
      * @throws IOException
      * @throws OWLOntologyCreationException
      */
-    public void initial(MultipartFile owlFile, MultipartFile mappingFile, MultipartFile propertiesFile,
-            MultipartFile driverFile) throws IOException, OWLOntologyCreationException {
+    public void initial(MultipartFile owlFile, MultipartFile mappingFile,
+                        MultipartFile propertiesFile, MultipartFile driverFile) throws IOException, OWLOntologyCreationException {
         // set owl file name
         String owlFileName = owlFile.getOriginalFilename();
         owlFileName = "ontology." + getFileExtension(owlFileName);
@@ -66,7 +66,6 @@ public class OntopController {
         // set mapping file name
         String mappingFileName = mappingFile.getOriginalFilename();
         String propertiesFileName = propertiesFile.getOriginalFilename();
-        String driverFileName = driverFile.getOriginalFilename();
 
         ontopModel.setOwlFile(owlFileName);
         ontopModel.setMappingFileName(mappingFileName);
@@ -85,25 +84,40 @@ public class OntopController {
         file.close();
 
         // save owl
-        File savedFileOwl = new File(uploadDirPath.toFile(), owlFileName);
-        owlFile.transferTo(savedFileOwl.toPath());
-
+        saveUploadedFile(uploadDirPath, owlFile, owlFileName);
         // save mapping
-        File savedFileMapping = new File(uploadDirPath.toFile(), mappingFileName);
-        mappingFile.transferTo(savedFileMapping.toPath());
-
+        saveUploadedFile(uploadDirPath, mappingFile);
         // save properties
-        File savedFilePropertiesFile = new File(uploadDirPath.toFile(), propertiesFileName);
-        propertiesFile.transferTo(savedFilePropertiesFile.toPath());
+        saveUploadedFile(uploadDirPath, propertiesFile);
 
         // create dir for upload driver
-        // save driver
         Path uploadDriverDirPath = ontopModel.getUploadDriverDirPath();
         Files.createDirectories(uploadDirPath);
 
-        File savedFileDriverFile = new File(uploadDriverDirPath.toFile(), driverFileName);
-        driverFile.transferTo(savedFileDriverFile.toPath());
+        // save driver
+        saveUploadedFile(uploadDriverDirPath, driverFile);
 
+//        File savedFileOwl = new File(uploadDirPath.toFile(), owlFileName);
+//        owlFile.transferTo(savedFileOwl.toPath());
+//        File savedFileMapping = new File(uploadDirPath.toFile(), mappingFileName);
+//        mappingFile.transferTo(savedFileMapping.toPath());
+//        File savedFilePropertiesFile = new File(uploadDirPath.toFile(), propertiesFileName);
+//        propertiesFile.transferTo(savedFilePropertiesFile.toPath());
+//        File savedFileDriverFile = new File(uploadDriverDirPath.toFile(), driverFileName);
+//        driverFile.transferTo(savedFileDriverFile.toPath());
+
+
+
+    }
+
+    private void saveUploadedFile(Path uploadDirPath, MultipartFile multipartFile) throws IOException {
+        File savedFileDriverFile = new File(uploadDirPath.toFile(), multipartFile.getOriginalFilename());
+        multipartFile.transferTo(savedFileDriverFile.toPath());
+    }
+
+    private void saveUploadedFile(Path uploadDirPath, MultipartFile multipartFile, String fileName) throws IOException {
+        File savedFileDriverFile = new File(uploadDirPath.toFile(), fileName);
+        multipartFile.transferTo(savedFileDriverFile.toPath());
     }
 
     /**
@@ -422,7 +436,6 @@ public class OntopController {
                     similaritiesArray.put(similarityEntry);
                 }
             }
-
             return similaritiesArray;
         } catch (IOException e) {
             System.err.println("Error reading concept Similarity file: " + e.getMessage());
@@ -858,6 +871,18 @@ public class OntopController {
      */
     public String extractConceptInMappingFile(String mappingID) {
         HashMap<String, HashMap<String, String>> mappingIdMap = extractMappingValueFile();
+
+        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
+            String outerMap = outerEntry.getKey();
+            HashMap<String, String> innerMap = outerEntry.getValue();
+            if (outerMap.equals(mappingID)) {
+                return extractConcept(innerMap.get("target"));
+            }
+        }
+        return "There is no this mapping ID (impossible since we since this from web)";
+    }
+
+    public String extractConcept(String value) {
         // assume concepts are after 'a' relationship
         String keyword = "a";
 
@@ -867,24 +892,19 @@ public class OntopController {
         // Compile the pattern
         Pattern pattern = Pattern.compile(regex);
 
-        for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
-            String outerMap = outerEntry.getKey();
-            HashMap<String, String> innerMap = outerEntry.getValue();
-            if (outerMap.equals(mappingID)) {
-                Matcher matcher = pattern.matcher(innerMap.get("target"));
-                if (matcher.find()) {
-                    String extractedValue = matcher.group(1);
+        Matcher matcher = pattern.matcher(value);
 
-                    // Remove the base IRI from the extracted value
-                    if (extractedValue.startsWith(baseIRI)) {
-                        return extractedValue.substring(baseIRI.length());
-                    } else {
-                        System.out.println("The extracted value does not start with the base IRI.");
-                    }
-                }
+        if (matcher.find()) {
+            String extractedValue = matcher.group(1);
+
+            // Remove the base IRI from the extracted value
+            if (extractedValue.startsWith(baseIRI)) {
+                return extractedValue.substring(baseIRI.length());
+            } else {
+                return "The extracted value does not start with the base IRI.";
             }
         }
-        return "There is no this mapping ID (impossible since we since this from web)";
+        return "There is no 'a <>' pattern";
     }
 
     public List<String> getAllMappingID() {
@@ -911,7 +931,7 @@ public class OntopController {
         for (Map.Entry<String, HashMap<String, String>> outerEntry : mappingIdMap.entrySet()) {
             HashMap<String, String> innerMap = outerEntry.getValue();
             for (SymmetricPair<String> concepts : swapConceptPair) {
-                if (innerMap.get("target").contains(concepts.getFirst())) {
+                if (extractConcept(innerMap.get("target")).equals(concepts.getFirst())) {
                     String targetString = innerMap.get("target").replace(concepts.getFirst(), concepts.getSecond());
 
                     String simMapping = "mappingId\tMAPPING-SIM-ID" + counter++ + "\n" +
@@ -919,11 +939,10 @@ public class OntopController {
                             "source\t\t" + innerMap.get("source");
                     textToAppend.add(simMapping);
 
-                    break;
                 }
             }
             for (SymmetricPair<String> concepts : generateConceptPair) {
-                if (innerMap.get("target").contains(concepts.getFirst())) {
+                if (extractConcept(innerMap.get("target")).equals(concepts.getFirst())) {
                     /*
                      * not implement
                      * String targetString <- craft target which use columns name from database dbSchema
@@ -934,7 +953,6 @@ public class OntopController {
                      * textToAppend.add(simMapping);
                      */
 
-                    break;
                 }
             }
         }
