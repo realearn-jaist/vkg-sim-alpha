@@ -223,6 +223,14 @@ To deploy the VKGSim application on an EC2 instance, follow these steps:
      ```java
      ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", "cd ontop-cli && " + command);
      ```
+3. **Modify `frontend-vkgsim/api.ts`**
+
+Change the API_BASE_URL to your `ec2-ip:port`.
+
+4. **Modify `package.json`**
+
+- Change `xcopy` to `cp -r`.
+- Change `\\` to `/` (for Linux OS).
 
 ### 5. Install Dependencies
 
