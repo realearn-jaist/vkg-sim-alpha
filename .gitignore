@@ -16,7 +16,7 @@
 !src/test/java/io/github/vkgsim/controller/**
 !src/test/resources/**
 src/test/resources/ontop-cli/**
-
+!docs/**
 
 !mvnw
 !mvnw.cmd
