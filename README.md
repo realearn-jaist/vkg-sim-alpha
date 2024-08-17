@@ -60,16 +60,12 @@ src/main/resources/templates/
 
 1. Enter username for creating folder
 
-![alt text](images/image.png)
-
 2. Upload all necessary files
 
 - owl file
 - mapping file
 - database propertie file
 - database driver file
-
-![alt text](images/image-1.png)
 
 3. Go to Mapping Section on Navigator Bar
 
@@ -93,19 +89,13 @@ src/main/resources/templates/
 
   - After making the necessary edits, save your mapping file to ensure your changes are applied.
 
-  ![alt text](images/image-2.png)
-
 4. Go to Query Section on Navigator Bar
 
 - you can select "Standard Query" to send a query that uses your mapping file, ontology (including your original ontology and Ontop bootstrapping ontology if available), and the database schema.
 
-![alt text](images/image-3.png)
-
 - you can select "Similarity Query" to perform a query similar to the "Standard Query," but with an additional step: it will generate a similarity class based on the threshold. This class will be appended to the mapping file, so you need to refresh the mapping page to see the result.
 
 - you will see the "Explanation" section, which tells you which concepts were used to append to the mapping file. If you click on the "Details" button, it will show you all the reasons why these concept pairs were appended based on the similarity threshold.
-
-![alt text](images/image-4.png)
 
 ## Requirements
 
